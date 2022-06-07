@@ -40,9 +40,9 @@ type Server struct {
 	mapKey2RegObserverList map[string]RegObserverList
 }
 
-func NewServer(net rpc.Net, peerType uint16, peerNo uint16) *Server {
+func NewServer(net rpc.Net) *Server {
 	s := &Server{
-		BaseServer:             rpc.NewBaseServer(net, peerType, peerNo),
+		BaseServer:             rpc.NewBaseServer(net),
 		info:                   NewRegInfo(),
 		mapKey2RegObserverList: make(map[string]RegObserverList),
 	}
