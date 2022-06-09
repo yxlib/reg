@@ -7,10 +7,10 @@ package reg
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"os"
 	"strconv"
-	"strings"
+
+	"github.com/yxlib/yx"
 )
 
 var (
@@ -19,8 +19,8 @@ var (
 )
 
 type SrvInfo struct {
-	SrvType    uint16 `json:"type"`
-	SrvNo      uint16 `json:"no"`
+	SrvType    uint32 `json:"type"`
+	SrvNo      uint32 `json:"no"`
 	IsTemp     bool   `json:"bTemp"`
 	DataBase64 string `json:"data"`
 }
@@ -30,19 +30,28 @@ type RegSavedInfo struct {
 	MapGlobalKey2Data map[string]string `json:"global"`
 }
 
+func NewRegSavedInfo() *RegSavedInfo {
+	return &RegSavedInfo{
+		SrvInfos:          make([]*SrvInfo, 0),
+		MapGlobalKey2Data: make(map[string]string),
+	}
+}
+
 type RegInfo struct {
 	treeSrvInfos    *MapTree
 	treeGlobalInfos *MapTree
+	logger          *yx.Logger
 }
 
 func NewRegInfo() *RegInfo {
 	return &RegInfo{
 		treeSrvInfos:    NewMapTree(),
 		treeGlobalInfos: NewMapTree(),
+		logger:          yx.NewLogger("NewRegInfo"),
 	}
 }
 
-func (r *RegInfo) AddSrv(srvType uint16, srvNo uint16, bTemp bool, dataBase64 string) error {
+func (r *RegInfo) AddSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 string) error {
 	info := &SrvInfo{
 		SrvType:    srvType,
 		SrvNo:      srvNo,
@@ -50,18 +59,18 @@ func (r *RegInfo) AddSrv(srvType uint16, srvNo uint16, bTemp bool, dataBase64 st
 		DataBase64: dataBase64,
 	}
 
-	key := r.GetSrvKey(srvType, srvNo)
+	key := GetSrvKey(srvType, srvNo)
 	err := r.setData(r.treeSrvInfos, key, info)
 	return err
 }
 
-func (r *RegInfo) RemoveSrv(srvType uint16, srvNo uint16) {
-	key := r.GetSrvKey(srvType, srvNo)
+func (r *RegInfo) RemoveSrv(srvType uint32, srvNo uint32) {
+	key := GetSrvKey(srvType, srvNo)
 	r.removeData(r.treeSrvInfos, key)
 }
 
-func (r *RegInfo) IsTempSrv(srvType uint16, srvNo uint16) (bool, error) {
-	key := r.GetSrvKey(srvType, srvNo)
+func (r *RegInfo) IsTempSrv(srvType uint32, srvNo uint32) (bool, error) {
+	key := GetSrvKey(srvType, srvNo)
 	data, ok := r.getData(r.treeSrvInfos, key)
 	if !ok {
 		return false, ErrSrvNotExists
@@ -71,14 +80,19 @@ func (r *RegInfo) IsTempSrv(srvType uint16, srvNo uint16) (bool, error) {
 	return info.IsTemp, nil
 }
 
-func (r *RegInfo) HasSrv(srvType uint16, srvNo uint16) bool {
-	key := r.GetSrvKey(srvType, srvNo)
+func (r *RegInfo) HasSrv(srvType uint32, srvNo uint32) bool {
+	key := GetSrvKey(srvType, srvNo)
 	_, ok := r.getData(r.treeSrvInfos, key)
 	return ok
 }
 
-func (r *RegInfo) GetSrvInfo(srvType uint16, srvNo uint16) (*SrvInfo, bool) {
-	key := r.GetSrvKey(srvType, srvNo)
+func (r *RegInfo) GetSrvInfo(srvType uint32, srvNo uint32) (*SrvInfo, bool) {
+	key := GetSrvKey(srvType, srvNo)
+	info, ok := r.GetSrvInfoByKey(key)
+	return info, ok
+}
+
+func (r *RegInfo) GetSrvInfoByKey(key string) (*SrvInfo, bool) {
 	data, ok := r.getData(r.treeSrvInfos, key)
 	if !ok {
 		return nil, false
@@ -88,13 +102,13 @@ func (r *RegInfo) GetSrvInfo(srvType uint16, srvNo uint16) (*SrvInfo, bool) {
 	return info, true
 }
 
-func (r *RegInfo) GetSrvData(srvType uint16, srvNo uint16) (string, bool) {
+func (r *RegInfo) GetSrvData(srvType uint32, srvNo uint32) (string, bool) {
 	info, ok := r.GetSrvInfo(srvType, srvNo)
 	return info.DataBase64, ok
 }
 
-func (r *RegInfo) SetSrvData(srvType uint16, srvNo uint16, dataBase64 string) error {
-	key := r.GetSrvKey(srvType, srvNo)
+func (r *RegInfo) SetSrvData(srvType uint32, srvNo uint32, dataBase64 string) error {
+	key := GetSrvKey(srvType, srvNo)
 	d, ok := r.getData(r.treeSrvInfos, key)
 	if !ok {
 		return ErrSrvNotExists
@@ -105,25 +119,25 @@ func (r *RegInfo) SetSrvData(srvType uint16, srvNo uint16, dataBase64 string) er
 	return nil
 }
 
-func (r *RegInfo) GetAllSrvNos(srvType uint16) ([]uint16, bool) {
-	key := r.GetSrvTypeKey(srvType)
+func (r *RegInfo) GetAllSrvNos(srvType uint32) ([]uint32, bool) {
+	key := GetSrvTypeKey(srvType)
 	node, ok := r.getNode(r.treeSrvInfos, key)
 	if !ok {
 		return nil, false
 	}
 
 	childKeys := node.AllChildKeys()
-	srvNos := make([]uint16, 0, len(childKeys))
+	srvNos := make([]uint32, 0, len(childKeys))
 	for _, childKey := range childKeys {
 		no, _ := strconv.ParseUint(childKey, 10, 16)
-		srvNos = append(srvNos, uint16(no))
+		srvNos = append(srvNos, uint32(no))
 	}
 
 	return srvNos, true
 }
 
-func (r *RegInfo) GetAllSrvInfos(srvType uint16) ([]*SrvInfo, bool) {
-	key := r.GetSrvTypeKey(srvType)
+func (r *RegInfo) GetAllSrvInfos(srvType uint32) ([]*SrvInfo, bool) {
+	key := GetSrvTypeKey(srvType)
 	node, ok := r.getNode(r.treeSrvInfos, key)
 	if !ok {
 		return nil, false
@@ -196,12 +210,8 @@ func (r *RegInfo) Load(filePath string) error {
 }
 
 func (r *RegInfo) Save(filePath string) error {
-	savedInfo := &RegSavedInfo{
-		SrvInfos:          make([]*SrvInfo, 0),
-		MapGlobalKey2Data: make(map[string]string),
-	}
-
-	r.marshalSrvInfos(savedInfo)
+	savedInfo := NewRegSavedInfo()
+	r.marshalSrvInfos(savedInfo, true)
 	r.marshalGlobalInfos(savedInfo)
 
 	f, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE, 0666)
@@ -215,16 +225,20 @@ func (r *RegInfo) Save(filePath string) error {
 	return err
 }
 
-func (r *RegInfo) GetSrvTypeKey(srvType uint16) string {
-	return fmt.Sprintf("/%d", srvType)
-}
+func (r *RegInfo) Dump() {
+	savedInfo := NewRegSavedInfo()
+	r.marshalSrvInfos(savedInfo, false)
+	r.marshalGlobalInfos(savedInfo)
+	data, err := json.Marshal(savedInfo)
+	if err != nil {
+		return
+	}
 
-func (r *RegInfo) GetSrvKey(srvType uint16, srvNo uint16) string {
-	return fmt.Sprintf("/%d/%d", srvType, srvNo)
+	r.logger.D(string(data))
 }
 
 func (r *RegInfo) setData(tree *MapTree, key string, data interface{}) error {
-	subPaths := r.parseInfoPath(key)
+	subPaths := ParseInfoPath(key)
 	if len(subPaths) == 0 {
 		return ErrEmptyPath
 	}
@@ -255,7 +269,7 @@ func (r *RegInfo) getData(tree *MapTree, key string) (interface{}, bool) {
 }
 
 func (r *RegInfo) removeData(tree *MapTree, key string) {
-	subPaths := r.parseInfoPath(key)
+	subPaths := ParseInfoPath(key)
 	if len(subPaths) == 0 {
 		return
 	}
@@ -276,7 +290,7 @@ func (r *RegInfo) removeData(tree *MapTree, key string) {
 }
 
 func (r *RegInfo) getNode(tree *MapTree, key string) (*MapTreeNode, bool) {
-	subPaths := r.parseInfoPath(key)
+	subPaths := ParseInfoPath(key)
 	if len(subPaths) == 0 {
 		return nil, false
 	}
@@ -293,32 +307,11 @@ func (r *RegInfo) getNode(tree *MapTree, key string) (*MapTreeNode, bool) {
 	return node, true
 }
 
-func (r *RegInfo) parseInfoPath(path string) []string {
-	subPaths := make([]string, 0)
-
-	if len(path) <= 1 {
-		return subPaths
-	}
-
-	idx := strings.Index(path, "/")
-	if idx != 0 {
-		return subPaths
-	}
-
-	// subPath = append(subPath, "/")
-	// if len(path) == 1 {
-	// 	return subPath
-	// }
-
-	subStr := strings.Split(path[1:], "/")
-	return append(subPaths, subStr...)
+func (r *RegInfo) marshalSrvInfos(savedInfo *RegSavedInfo, bIgnoreTemp bool) {
+	r.visitSaveSrvInfos(savedInfo, bIgnoreTemp, "", r.treeSrvInfos.root)
 }
 
-func (r *RegInfo) marshalSrvInfos(savedInfo *RegSavedInfo) {
-	r.visitSaveSrvInfos(savedInfo, "", r.treeSrvInfos.root)
-}
-
-func (r *RegInfo) visitSaveSrvInfos(savedInfo *RegSavedInfo, parentPath string, parentNode *MapTreeNode) {
+func (r *RegInfo) visitSaveSrvInfos(savedInfo *RegSavedInfo, bIgnoreTemp bool, parentPath string, parentNode *MapTreeNode) {
 	if parentNode == nil {
 		return
 	}
@@ -326,14 +319,16 @@ func (r *RegInfo) visitSaveSrvInfos(savedInfo *RegSavedInfo, parentPath string, 
 	d := parentNode.GetData()
 	if d != nil {
 		info := d.(*SrvInfo)
-		savedInfo.SrvInfos = append(savedInfo.SrvInfos, info)
+		if !bIgnoreTemp || !info.IsTemp {
+			savedInfo.SrvInfos = append(savedInfo.SrvInfos, info)
+		}
 	}
 
 	childKeys := parentNode.AllChildKeys()
 	for _, key := range childKeys {
 		path := parentPath + "/" + key
 		childNode, _ := parentNode.GetChild(key)
-		r.visitSaveSrvInfos(savedInfo, path, childNode)
+		r.visitSaveSrvInfos(savedInfo, bIgnoreTemp, path, childNode)
 	}
 }
 

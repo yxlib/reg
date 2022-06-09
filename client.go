@@ -23,7 +23,7 @@ type Client struct {
 	logger   *yx.Logger
 }
 
-func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint16, srvPeerNo uint16) *Client {
+func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint32, srvPeerNo uint32) *Client {
 	return &Client{
 		rpcPeer:  rpc.NewPeer(rpcNet, REG_MARK, srvPeerType, srvPeerNo),
 		observer: NewObserver(observerNet, srvPeerType, srvPeerNo),
@@ -59,7 +59,7 @@ func (c *Client) FetchFuncList() error {
 	return err
 }
 
-func (c *Client) UpdateSrv(srvType uint16, srvNo uint16, bTemp bool, data []byte) error {
+func (c *Client) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, data []byte) error {
 	req := &UpdateSrvReq{}
 	req.SrvType = srvType
 	req.SrvNo = srvNo
@@ -71,7 +71,7 @@ func (c *Client) UpdateSrv(srvType uint16, srvNo uint16, bTemp bool, data []byte
 	return err
 }
 
-func (c *Client) RemoveSrv(srvType uint16, srvNo uint16) error {
+func (c *Client) RemoveSrv(srvType uint32, srvNo uint32) error {
 	req := &RemoveSrvReq{
 		SrvType: srvType,
 		SrvNo:   srvNo,
@@ -82,7 +82,7 @@ func (c *Client) RemoveSrv(srvType uint16, srvNo uint16) error {
 	return err
 }
 
-func (c *Client) GetSrv(srvType uint16, srvNo uint16) (*SrvInfo, error) {
+func (c *Client) GetSrv(srvType uint32, srvNo uint32) (*SrvInfo, error) {
 	req := &GetSrvReq{
 		SrvType: srvType,
 		SrvNo:   srvNo,
@@ -97,7 +97,21 @@ func (c *Client) GetSrv(srvType uint16, srvNo uint16) (*SrvInfo, error) {
 	return resp.Data, nil
 }
 
-func (c *Client) GetSrvsByType(srvType uint16) ([]*SrvInfo, error) {
+func (c *Client) GetSrvByKey(key string) (*SrvInfo, error) {
+	req := &GetSrvByKeyReq{
+		Key: key,
+	}
+
+	resp := &GetSrvResp{}
+	err := c.rpcCall("GetSrv", req, resp)
+	if err != nil {
+		return nil, err
+	}
+
+	return resp.Data, nil
+}
+
+func (c *Client) GetSrvsByType(srvType uint32) ([]*SrvInfo, error) {
 	req := &GetSrvsByTypeReq{
 		SrvType: srvType,
 	}
@@ -111,7 +125,7 @@ func (c *Client) GetSrvsByType(srvType uint16) ([]*SrvInfo, error) {
 	return resp.Data, nil
 }
 
-func (c *Client) WatchSrv(srvType uint16, srvNo uint16) error {
+func (c *Client) WatchSrv(srvType uint32, srvNo uint32) error {
 	req := &WatchSrvReq{
 		SrvType: srvType,
 		SrvNo:   srvNo,
@@ -122,7 +136,7 @@ func (c *Client) WatchSrv(srvType uint16, srvNo uint16) error {
 	return err
 }
 
-func (c *Client) StopWatchSrv(srvType uint16, srvNo uint16) error {
+func (c *Client) StopWatchSrv(srvType uint32, srvNo uint32) error {
 	req := &StopWatchSrvReq{
 		SrvType: srvType,
 		SrvNo:   srvNo,
@@ -133,7 +147,7 @@ func (c *Client) StopWatchSrv(srvType uint16, srvNo uint16) error {
 	return err
 }
 
-func (c *Client) WatchSrvsByType(srvType uint16) error {
+func (c *Client) WatchSrvsByType(srvType uint32) error {
 	req := &WatchSrvsByTypeReq{
 		SrvType: srvType,
 	}
@@ -143,7 +157,7 @@ func (c *Client) WatchSrvsByType(srvType uint16) error {
 	return err
 }
 
-func (c *Client) StopWatchSrvsByType(srvType uint16) error {
+func (c *Client) StopWatchSrvsByType(srvType uint32) error {
 	req := &StopWatchSrvsByTypeReq{
 		SrvType: srvType,
 	}
@@ -213,7 +227,7 @@ func (c *Client) StopWatchGlobalData(key string) error {
 	return err
 }
 
-func (c *Client) StopAllWatch(srvType uint16, srvNo uint16) error {
+func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {
 	req := &StopAllWatchReq{
 		SrvType: srvType,
 		SrvNo:   srvNo,

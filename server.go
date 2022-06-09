@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/yxlib/rpc"
+	"github.com/yxlib/yx"
 )
 
 const (
@@ -16,19 +17,23 @@ const (
 	DATA_OPR_TYPE_REMOVE
 )
 
+const (
+	MAX_PUSH_QUE = 10
+)
+
 type RegObserver struct {
-	SrvType uint16
-	SrvNo   uint16
+	SrvType uint32
+	SrvNo   uint32
 }
 
-func NewRegObserver(srvType uint16, srvNo uint16) *RegObserver {
+func NewRegObserver(srvType uint32, srvNo uint32) *RegObserver {
 	return &RegObserver{
 		SrvType: srvType,
 		SrvNo:   srvNo,
 	}
 }
 
-func (o *RegObserver) IsSameObserver(srvType uint16, srvNo uint16) bool {
+func (o *RegObserver) IsSameObserver(srvType uint32, srvNo uint32) bool {
 	return (o.SrvType == srvType && o.SrvNo == srvNo)
 }
 
@@ -37,14 +42,20 @@ type RegObserverList = []*RegObserver
 type Server struct {
 	*rpc.BaseServer
 	info                   *RegInfo
+	savePath               string
 	mapKey2RegObserverList map[string]RegObserverList
+	chanOprPush            chan *DataOprPush
+	evtSave                *yx.Event
 }
 
-func NewServer(net rpc.Net) *Server {
+func NewServer(net rpc.Net, savePath string) *Server {
 	s := &Server{
 		BaseServer:             rpc.NewBaseServer(net),
 		info:                   NewRegInfo(),
+		savePath:               savePath,
 		mapKey2RegObserverList: make(map[string]RegObserverList),
+		chanOprPush:            make(chan *DataOprPush, MAX_PUSH_QUE),
+		evtSave:                yx.NewEvent(),
 	}
 
 	s.SetMark(REG_MARK)
@@ -52,7 +63,19 @@ func NewServer(net rpc.Net) *Server {
 	return s
 }
 
-func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) Start() {
+	go s.pushLoop()
+	go s.saveLoop()
+	s.BaseServer.Start()
+}
+
+func (s *Server) Stop() {
+	s.BaseServer.Stop()
+	s.evtSave.Close()
+	close(s.chanOprPush)
+}
+
+func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*UpdateSrvReq)
 	ok := s.info.HasSrv(reqData.SrvType, reqData.SrvNo)
 	if !ok {
@@ -61,21 +84,28 @@ func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint
 		s.info.SetSrvData(reqData.SrvType, reqData.SrvNo, reqData.DataBase64)
 	}
 
-	key := s.info.GetSrvKey(reqData.SrvType, reqData.SrvNo)
-	go s.notifyDataUpdate(key, DATA_OPR_TYPE_UPDATE)
+	s.evtSave.Send()
+
+	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
+	pushData := NewDataOprPush(key, DATA_OPR_TYPE_UPDATE)
+	s.chanOprPush <- pushData
+	// go s.notifyDataUpdate(key, DATA_OPR_TYPE_UPDATE)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
 	return nil
 }
 
-func (s *Server) OnRemoveSrv(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnRemoveSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*RemoveSrvReq)
 	if s.info.HasSrv(reqData.SrvType, reqData.SrvNo) {
 		s.info.RemoveSrv(reqData.SrvType, reqData.SrvNo)
+		s.evtSave.Send()
 
-		key := s.info.GetSrvKey(reqData.SrvType, reqData.SrvNo)
-		go s.notifyDataUpdate(key, DATA_OPR_TYPE_REMOVE)
+		key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
+		pushData := NewDataOprPush(key, DATA_OPR_TYPE_REMOVE)
+		s.chanOprPush <- pushData
+		// go s.notifyDataUpdate(key, DATA_OPR_TYPE_REMOVE)
 	}
 
 	respData := resp.(*BaseResp)
@@ -83,7 +113,7 @@ func (s *Server) OnRemoveSrv(req interface{}, resp interface{}, srcPeerType uint
 	return nil
 }
 
-func (s *Server) OnGetSrv(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnGetSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*GetSrvReq)
 	respData := resp.(*GetSrvResp)
 
@@ -98,7 +128,22 @@ func (s *Server) OnGetSrv(req interface{}, resp interface{}, srcPeerType uint16,
 	return nil
 }
 
-func (s *Server) OnGetSrvsByType(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnGetSrvByKey(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+	reqData := req.(*GetSrvByKeyReq)
+	respData := resp.(*GetSrvByKeyResp)
+
+	srvInfo, ok := s.info.GetSrvInfoByKey(reqData.Key)
+	if ok {
+		respData.SetResult(RES_CODE_SUCC, "")
+	} else {
+		respData.SetResult(RES_CODE_SRV_NOT_EXISTS, "server not exists")
+	}
+
+	respData.Data = srvInfo
+	return nil
+}
+
+func (s *Server) OnGetSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*GetSrvsByTypeReq)
 	respData := resp.(*GetSrvsByTypeResp)
 
@@ -113,9 +158,9 @@ func (s *Server) OnGetSrvsByType(req interface{}, resp interface{}, srcPeerType 
 	return nil
 }
 
-func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*WatchSrvReq)
-	key := s.info.GetSrvKey(reqData.SrvType, reqData.SrvNo)
+	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
 	s.addObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
@@ -123,9 +168,9 @@ func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint1
 	return nil
 }
 
-func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopWatchSrvReq)
-	key := s.info.GetSrvKey(reqData.SrvType, reqData.SrvNo)
+	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
 	s.removeObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
@@ -133,9 +178,9 @@ func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType u
 	return nil
 }
 
-func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*WatchSrvsByTypeReq)
-	key := s.info.GetSrvTypeKey(reqData.SrvType)
+	key := GetSrvTypeKey(reqData.SrvType)
 	s.addObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
@@ -143,9 +188,9 @@ func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerTyp
 	return nil
 }
 
-func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopWatchSrvsByTypeReq)
-	key := s.info.GetSrvTypeKey(reqData.SrvType)
+	key := GetSrvTypeKey(reqData.SrvType)
 	s.removeObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
@@ -153,23 +198,31 @@ func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPee
 	return nil
 }
 
-func (s *Server) OnUpdateGlobalData(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnUpdateGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*UpdateGlobalDataReq)
 	s.info.SetGlobalData(reqData.Key, reqData.DataBase64)
 
-	go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_UPDATE)
+	s.evtSave.Send()
+
+	pushData := NewDataOprPush(reqData.Key, DATA_OPR_TYPE_UPDATE)
+	s.chanOprPush <- pushData
+	// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_UPDATE)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
 	return nil
 }
 
-func (s *Server) OnRemoveGlobalData(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnRemoveGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*RemoveGlobalDataReq)
 
 	if s.info.HasGlobalData(reqData.Key) {
 		s.info.RemoveGlobalData(reqData.Key)
-		go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_REMOVE)
+		s.evtSave.Send()
+
+		pushData := NewDataOprPush(reqData.Key, DATA_OPR_TYPE_REMOVE)
+		s.chanOprPush <- pushData
+		// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_REMOVE)
 	}
 
 	respData := resp.(*BaseResp)
@@ -177,7 +230,7 @@ func (s *Server) OnRemoveGlobalData(req interface{}, resp interface{}, srcPeerTy
 	return nil
 }
 
-func (s *Server) OnGetGlobalData(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnGetGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*GetGlobalDataReq)
 	respData := resp.(*GetGlobalDataResp)
 
@@ -192,7 +245,7 @@ func (s *Server) OnGetGlobalData(req interface{}, resp interface{}, srcPeerType 
 	return nil
 }
 
-func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*WatchGlobalDataReq)
 	s.addObserver(reqData.Key, srcPeerType, srcPeerNo)
 
@@ -201,7 +254,7 @@ func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerTyp
 	return nil
 }
 
-func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopWatchGlobalDataReq)
 	s.removeObserver(reqData.Key, srcPeerType, srcPeerNo)
 
@@ -210,7 +263,7 @@ func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPee
 	return nil
 }
 
-func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType uint16, srcPeerNo uint16) error {
+func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopAllWatchReq)
 	s.removeAllObserverOfSrv(reqData.SrvType, reqData.SrvNo)
 
@@ -219,7 +272,7 @@ func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType u
 	return nil
 }
 
-func (s *Server) addObserver(key string, srvType uint16, srvNo uint16) {
+func (s *Server) addObserver(key string, srvType uint32, srvNo uint32) {
 	o := &RegObserver{
 		SrvType: srvType,
 		SrvNo:   srvNo,
@@ -235,7 +288,7 @@ func (s *Server) addObserver(key string, srvType uint16, srvNo uint16) {
 	s.mapKey2RegObserverList[key] = append(list, o)
 }
 
-func (s *Server) existObserver(list []*RegObserver, srvType uint16, srvNo uint16) bool {
+func (s *Server) existObserver(list []*RegObserver, srvType uint32, srvNo uint32) bool {
 	for _, observer := range list {
 		if observer.IsSameObserver(srvType, srvNo) {
 			return true
@@ -245,20 +298,20 @@ func (s *Server) existObserver(list []*RegObserver, srvType uint16, srvNo uint16
 	return false
 }
 
-func (s *Server) removeObserver(key string, srvType uint16, srvNo uint16) {
+func (s *Server) removeObserver(key string, srvType uint32, srvNo uint32) {
 	list, ok := s.mapKey2RegObserverList[key]
 	if ok {
 		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
 	}
 }
 
-func (s *Server) removeAllObserverOfSrv(srvType uint16, srvNo uint16) {
+func (s *Server) removeAllObserverOfSrv(srvType uint32, srvNo uint32) {
 	for key, list := range s.mapKey2RegObserverList {
 		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
 	}
 }
 
-func (s *Server) removeObserverFromList(list []*RegObserver, srvType uint16, srvNo uint16) []*RegObserver {
+func (s *Server) removeObserverFromList(list []*RegObserver, srvType uint32, srvNo uint32) []*RegObserver {
 	for i, observer := range list {
 		if observer.IsSameObserver(srvType, srvNo) {
 			if len(list) == 1 {
@@ -282,6 +335,17 @@ func (s *Server) cloneObserverList(key string) (RegObserverList, bool) {
 	cloneList := make(RegObserverList, len(list))
 	copy(cloneList, list)
 	return cloneList, ok
+}
+
+func (s *Server) pushLoop() {
+	for {
+		pushData, ok := <-s.chanOprPush
+		if !ok {
+			break
+		}
+
+		s.notifyDataUpdate(pushData.Key, pushData.Operate)
+	}
 }
 
 func (s *Server) notifyDataUpdate(key string, opr int) {
@@ -328,5 +392,19 @@ func (s *Server) pushDataUpdate(key string, opr int, list []*RegObserver) {
 
 	for _, observer := range list {
 		s.WritePack(payload, observer.SrvType, observer.SrvNo)
+	}
+}
+
+func (s *Server) saveLoop() {
+	for {
+		_, ok := <-s.evtSave.C
+		if !ok {
+			break
+		}
+
+		s.info.Save(s.savePath)
+		if s.IsDebugMode() {
+			s.info.Dump()
+		}
 	}
 }

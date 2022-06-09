@@ -54,8 +54,8 @@ type UpdateSrvReq struct {
 
 // RemoveSrv
 type RemoveSrvReq struct {
-	SrvType uint16 `json:"type"`
-	SrvNo   uint16 `json:"no"`
+	SrvType uint32 `json:"type"`
+	SrvNo   uint32 `json:"no"`
 }
 
 // type RemoveSrvResp struct {
@@ -64,8 +64,8 @@ type RemoveSrvReq struct {
 
 // GetSrv
 type GetSrvReq struct {
-	SrvType uint16 `json:"type"`
-	SrvNo   uint16 `json:"no"`
+	SrvType uint32 `json:"type"`
+	SrvNo   uint32 `json:"no"`
 }
 
 type GetSrvResp struct {
@@ -73,9 +73,19 @@ type GetSrvResp struct {
 	Data *SrvInfo `json:"data"`
 }
 
+// GetSrvByKey
+type GetSrvByKeyReq struct {
+	Key string `json:"key"`
+}
+
+type GetSrvByKeyResp struct {
+	BaseResp
+	Data *SrvInfo `json:"data"`
+}
+
 // GetSrvsByType
 type GetSrvsByTypeReq struct {
-	SrvType uint16 `json:"type"`
+	SrvType uint32 `json:"type"`
 }
 
 type GetSrvsByTypeResp struct {
@@ -85,8 +95,8 @@ type GetSrvsByTypeResp struct {
 
 // WatchSrv
 type WatchSrvReq struct {
-	SrvType uint16 `json:"type"`
-	SrvNo   uint16 `json:"no"`
+	SrvType uint32 `json:"type"`
+	SrvNo   uint32 `json:"no"`
 }
 
 // type WatchSrvResp struct {
@@ -95,8 +105,8 @@ type WatchSrvReq struct {
 
 // StopWatchSrv
 type StopWatchSrvReq struct {
-	SrvType uint16 `json:"type"`
-	SrvNo   uint16 `json:"no"`
+	SrvType uint32 `json:"type"`
+	SrvNo   uint32 `json:"no"`
 }
 
 // type StopWatchSrvResp struct {
@@ -105,7 +115,7 @@ type StopWatchSrvReq struct {
 
 // WatchSrvsByType
 type WatchSrvsByTypeReq struct {
-	SrvType uint16 `json:"type"`
+	SrvType uint32 `json:"type"`
 }
 
 // type WatchSrvsByTypeResp struct {
@@ -114,7 +124,7 @@ type WatchSrvsByTypeReq struct {
 
 // StopWatchSrvsByType
 type StopWatchSrvsByTypeReq struct {
-	SrvType uint16 `json:"type"`
+	SrvType uint32 `json:"type"`
 }
 
 // type StopWatchSrvsByTypeResp struct {
@@ -169,8 +179,8 @@ type StopWatchGlobalDataReq struct {
 // }
 
 type StopAllWatchReq struct {
-	SrvType uint16 `json:"type"`
-	SrvNo   uint16 `json:"no"`
+	SrvType uint32 `json:"type"`
+	SrvNo   uint32 `json:"no"`
 }
 
 // type StopAllWatchResp struct {
@@ -180,4 +190,11 @@ type StopAllWatchReq struct {
 type DataOprPush struct {
 	Key     string `json:"key"`
 	Operate int    `json:"opr"`
+}
+
+func NewDataOprPush(key string, operate int) *DataOprPush {
+	return &DataOprPush{
+		Key:     key,
+		Operate: operate,
+	}
 }

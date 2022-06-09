@@ -15,7 +15,7 @@ type Observer struct {
 	chanDataOprPush chan *DataOprPush
 }
 
-func NewObserver(net rpc.Net, peerType uint16, peerNo uint16) *Observer {
+func NewObserver(net rpc.Net, peerType uint32, peerNo uint32) *Observer {
 	o := &Observer{
 		net:             net,
 		chanDataOprPush: make(chan *DataOprPush),
