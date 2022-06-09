@@ -63,6 +63,14 @@ func NewServer(net rpc.Net, savePath string) *Server {
 	return s
 }
 
+func (s *Server) GetRegInfo() *RegInfo {
+	return s.info
+}
+
+func (s *Server) Save() {
+	s.evtSave.Send()
+}
+
 func (s *Server) Start() {
 	go s.pushLoop()
 	go s.saveLoop()
