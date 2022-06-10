@@ -405,8 +405,13 @@ func (s *Server) pushDataUpdate(key string, opr int, list []*RegObserver) {
 
 func (s *Server) saveLoop() {
 	for {
-		_, ok := <-s.evtSave.C
-		if !ok {
+		// _, ok := <-s.evtSave.C
+		// if !ok {
+		// 	break
+		// }
+
+		err := s.evtSave.Wait()
+		if err != nil {
 			break
 		}
 
