@@ -54,6 +54,8 @@ func (o *Observer) readPackLoop() {
 		headerLen := h.GetHeaderLen()
 		o.handlePack(h.FuncNo, data.Payload[headerLen:])
 	}
+
+	close(o.chanDataOprPush)
 }
 
 func (o *Observer) handlePack(funcNo uint16, payload []byte) {
