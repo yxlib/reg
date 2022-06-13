@@ -67,8 +67,57 @@ func (s *Server) GetRegInfo() *RegInfo {
 	return s.info
 }
 
-func (s *Server) Save() {
+// func (s *Server) Save() {
+// 	s.evtSave.Send()
+// }
+
+func (s *Server) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 string) {
+	ok := s.info.HasSrv(srvType, srvNo)
+	if !ok {
+		s.info.AddSrv(srvType, srvNo, bTemp, dataBase64)
+	} else {
+		s.info.SetSrvData(srvType, srvNo, dataBase64)
+	}
+
 	s.evtSave.Send()
+
+	key := GetSrvKey(srvType, srvNo)
+	pushData := NewDataOprPush(key, DATA_OPR_TYPE_UPDATE)
+	s.chanOprPush <- pushData
+	// go s.notifyDataUpdate(key, DATA_OPR_TYPE_UPDATE)
+}
+
+func (s *Server) RemoveSrv(srvType uint32, srvNo uint32) {
+	if s.info.HasSrv(srvType, srvNo) {
+		s.info.RemoveSrv(srvType, srvNo)
+		s.evtSave.Send()
+
+		key := GetSrvKey(srvType, srvNo)
+		pushData := NewDataOprPush(key, DATA_OPR_TYPE_REMOVE)
+		s.chanOprPush <- pushData
+		// go s.notifyDataUpdate(key, DATA_OPR_TYPE_REMOVE)
+	}
+}
+
+func (s *Server) UpdateGlobalData(key string, dataBase64 string) {
+	s.info.SetGlobalData(key, dataBase64)
+
+	s.evtSave.Send()
+
+	pushData := NewDataOprPush(key, DATA_OPR_TYPE_UPDATE)
+	s.chanOprPush <- pushData
+	// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_UPDATE)
+}
+
+func (s *Server) RemoveGlobalData(key string) {
+	if s.info.HasGlobalData(key) {
+		s.info.RemoveGlobalData(key)
+		s.evtSave.Send()
+
+		pushData := NewDataOprPush(key, DATA_OPR_TYPE_REMOVE)
+		s.chanOprPush <- pushData
+		// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_REMOVE)
+	}
 }
 
 func (s *Server) Start() {
@@ -85,19 +134,7 @@ func (s *Server) Stop() {
 
 func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*UpdateSrvReq)
-	ok := s.info.HasSrv(reqData.SrvType, reqData.SrvNo)
-	if !ok {
-		s.info.AddSrv(reqData.SrvType, reqData.SrvNo, reqData.IsTemp, reqData.DataBase64)
-	} else {
-		s.info.SetSrvData(reqData.SrvType, reqData.SrvNo, reqData.DataBase64)
-	}
-
-	s.evtSave.Send()
-
-	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
-	pushData := NewDataOprPush(key, DATA_OPR_TYPE_UPDATE)
-	s.chanOprPush <- pushData
-	// go s.notifyDataUpdate(key, DATA_OPR_TYPE_UPDATE)
+	s.UpdateSrv(reqData.SrvType, reqData.SrvNo, reqData.IsTemp, reqData.DataBase64)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -106,15 +143,7 @@ func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint
 
 func (s *Server) OnRemoveSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*RemoveSrvReq)
-	if s.info.HasSrv(reqData.SrvType, reqData.SrvNo) {
-		s.info.RemoveSrv(reqData.SrvType, reqData.SrvNo)
-		s.evtSave.Send()
-
-		key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
-		pushData := NewDataOprPush(key, DATA_OPR_TYPE_REMOVE)
-		s.chanOprPush <- pushData
-		// go s.notifyDataUpdate(key, DATA_OPR_TYPE_REMOVE)
-	}
+	s.RemoveSrv(reqData.SrvType, reqData.SrvNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -208,13 +237,7 @@ func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPee
 
 func (s *Server) OnUpdateGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*UpdateGlobalDataReq)
-	s.info.SetGlobalData(reqData.Key, reqData.DataBase64)
-
-	s.evtSave.Send()
-
-	pushData := NewDataOprPush(reqData.Key, DATA_OPR_TYPE_UPDATE)
-	s.chanOprPush <- pushData
-	// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_UPDATE)
+	s.UpdateGlobalData(reqData.Key, reqData.DataBase64)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -223,15 +246,7 @@ func (s *Server) OnUpdateGlobalData(req interface{}, resp interface{}, srcPeerTy
 
 func (s *Server) OnRemoveGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*RemoveGlobalDataReq)
-
-	if s.info.HasGlobalData(reqData.Key) {
-		s.info.RemoveGlobalData(reqData.Key)
-		s.evtSave.Send()
-
-		pushData := NewDataOprPush(reqData.Key, DATA_OPR_TYPE_REMOVE)
-		s.chanOprPush <- pushData
-		// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_REMOVE)
-	}
+	s.RemoveGlobalData(reqData.Key)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
