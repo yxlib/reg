@@ -72,11 +72,17 @@ func (s *Server) GetRegInfo() *RegInfo {
 // }
 
 func (s *Server) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 string) {
+	var err error = nil
+
 	ok := s.info.HasSrv(srvType, srvNo)
 	if !ok {
-		s.info.AddSrv(srvType, srvNo, bTemp, dataBase64)
+		err = s.info.AddSrv(srvType, srvNo, bTemp, dataBase64)
 	} else {
-		s.info.SetSrvData(srvType, srvNo, dataBase64)
+		err = s.info.SetSrvData(srvType, srvNo, dataBase64)
+	}
+
+	if err != nil {
+		return
 	}
 
 	s.evtSave.Send()
@@ -100,7 +106,10 @@ func (s *Server) RemoveSrv(srvType uint32, srvNo uint32) {
 }
 
 func (s *Server) UpdateGlobalData(key string, dataBase64 string) {
-	s.info.SetGlobalData(key, dataBase64)
+	err := s.info.SetGlobalData(key, dataBase64)
+	if err != nil {
+		return
+	}
 
 	s.evtSave.Send()
 
