@@ -88,7 +88,7 @@ func (s *Server) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 
 	s.evtSave.Send()
 
 	key := GetSrvKey(srvType, srvNo)
-	pushData := NewDataOprPush(key, DATA_OPR_TYPE_UPDATE)
+	pushData := NewDataOprPush(KEY_TYPE_SRV_INFO, key, DATA_OPR_TYPE_UPDATE)
 	s.chanOprPush <- pushData
 	// go s.notifyDataUpdate(key, DATA_OPR_TYPE_UPDATE)
 }
@@ -99,7 +99,7 @@ func (s *Server) RemoveSrv(srvType uint32, srvNo uint32) {
 		s.evtSave.Send()
 
 		key := GetSrvKey(srvType, srvNo)
-		pushData := NewDataOprPush(key, DATA_OPR_TYPE_REMOVE)
+		pushData := NewDataOprPush(KEY_TYPE_SRV_INFO, key, DATA_OPR_TYPE_REMOVE)
 		s.chanOprPush <- pushData
 		// go s.notifyDataUpdate(key, DATA_OPR_TYPE_REMOVE)
 	}
@@ -113,7 +113,7 @@ func (s *Server) UpdateGlobalData(key string, dataBase64 string) {
 
 	s.evtSave.Send()
 
-	pushData := NewDataOprPush(key, DATA_OPR_TYPE_UPDATE)
+	pushData := NewDataOprPush(KEY_TYPE_GLOBAL_DATA, key, DATA_OPR_TYPE_UPDATE)
 	s.chanOprPush <- pushData
 	// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_UPDATE)
 }
@@ -123,7 +123,7 @@ func (s *Server) RemoveGlobalData(key string) {
 		s.info.RemoveGlobalData(key)
 		s.evtSave.Send()
 
-		pushData := NewDataOprPush(key, DATA_OPR_TYPE_REMOVE)
+		pushData := NewDataOprPush(KEY_TYPE_GLOBAL_DATA, key, DATA_OPR_TYPE_REMOVE)
 		s.chanOprPush <- pushData
 		// go s.notifyDataUpdate(reqData.Key, DATA_OPR_TYPE_REMOVE)
 	}

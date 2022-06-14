@@ -43,14 +43,14 @@ func (c *Client) Stop() {
 	c.rpcPeer.Stop()
 }
 
-func (c *Client) ListenDataOprPush(cb func(key string, operate int)) {
+func (c *Client) ListenDataOprPush(cb func(keyType int, key string, operate int)) {
 	for {
 		pack, ok := c.observer.PopDataOprPack()
 		if !ok {
 			break
 		}
 
-		cb(pack.Key, pack.Operate)
+		cb(pack.KeyType, pack.Key, pack.Operate)
 	}
 }
 

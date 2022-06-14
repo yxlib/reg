@@ -187,13 +187,20 @@ type StopAllWatchReq struct {
 // 	BaseResp
 // }
 
+const (
+	KEY_TYPE_SRV_INFO = 1 + iota
+	KEY_TYPE_GLOBAL_DATA
+)
+
 type DataOprPush struct {
+	KeyType int    `json:"key_type"`
 	Key     string `json:"key"`
 	Operate int    `json:"opr"`
 }
 
-func NewDataOprPush(key string, operate int) *DataOprPush {
+func NewDataOprPush(keyType int, key string, operate int) *DataOprPush {
 	return &DataOprPush{
+		KeyType: keyType,
 		Key:     key,
 		Operate: operate,
 	}
