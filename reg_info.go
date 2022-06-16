@@ -9,6 +9,7 @@ import (
 	"errors"
 	"os"
 	"strconv"
+	"sync"
 
 	"github.com/yxlib/yx"
 )
@@ -39,19 +40,26 @@ func NewRegSavedInfo() *RegSavedInfo {
 
 type RegInfo struct {
 	treeSrvInfos    *MapTree
+	lckSrv          *sync.RWMutex
 	treeGlobalInfos *MapTree
+	lckGlobal       *sync.RWMutex
 	logger          *yx.Logger
 }
 
 func NewRegInfo() *RegInfo {
 	return &RegInfo{
 		treeSrvInfos:    NewMapTree(),
+		lckSrv:          &sync.RWMutex{},
 		treeGlobalInfos: NewMapTree(),
+		lckGlobal:       &sync.RWMutex{},
 		logger:          yx.NewLogger("NewRegInfo"),
 	}
 }
 
 func (r *RegInfo) AddSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 string) error {
+	r.lckSrv.Lock()
+	defer r.lckSrv.Unlock()
+
 	info := &SrvInfo{
 		SrvType:    srvType,
 		SrvNo:      srvNo,
@@ -65,11 +73,17 @@ func (r *RegInfo) AddSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 st
 }
 
 func (r *RegInfo) RemoveSrv(srvType uint32, srvNo uint32) {
+	r.lckSrv.Lock()
+	defer r.lckSrv.Unlock()
+
 	key := GetSrvKey(srvType, srvNo)
 	r.removeData(r.treeSrvInfos, key)
 }
 
 func (r *RegInfo) IsTempSrv(srvType uint32, srvNo uint32) (bool, error) {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
 	key := GetSrvKey(srvType, srvNo)
 	data, ok := r.getData(r.treeSrvInfos, key)
 	if !ok {
@@ -81,9 +95,17 @@ func (r *RegInfo) IsTempSrv(srvType uint32, srvNo uint32) (bool, error) {
 }
 
 func (r *RegInfo) HasSrv(srvType uint32, srvNo uint32) bool {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
 	key := GetSrvKey(srvType, srvNo)
 	_, ok := r.getData(r.treeSrvInfos, key)
 	return ok
+}
+
+func (r *RegInfo) GetSrvData(srvType uint32, srvNo uint32) (string, bool) {
+	info, ok := r.GetSrvInfo(srvType, srvNo)
+	return info.DataBase64, ok
 }
 
 func (r *RegInfo) GetSrvInfo(srvType uint32, srvNo uint32) (*SrvInfo, bool) {
@@ -93,6 +115,9 @@ func (r *RegInfo) GetSrvInfo(srvType uint32, srvNo uint32) (*SrvInfo, bool) {
 }
 
 func (r *RegInfo) GetSrvInfoByKey(key string) (*SrvInfo, bool) {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
 	data, ok := r.getData(r.treeSrvInfos, key)
 	if !ok {
 		return nil, false
@@ -102,12 +127,10 @@ func (r *RegInfo) GetSrvInfoByKey(key string) (*SrvInfo, bool) {
 	return info, true
 }
 
-func (r *RegInfo) GetSrvData(srvType uint32, srvNo uint32) (string, bool) {
-	info, ok := r.GetSrvInfo(srvType, srvNo)
-	return info.DataBase64, ok
-}
-
 func (r *RegInfo) SetSrvData(srvType uint32, srvNo uint32, dataBase64 string) error {
+	r.lckSrv.Lock()
+	defer r.lckSrv.Unlock()
+
 	key := GetSrvKey(srvType, srvNo)
 	d, ok := r.getData(r.treeSrvInfos, key)
 	if !ok {
@@ -120,6 +143,9 @@ func (r *RegInfo) SetSrvData(srvType uint32, srvNo uint32, dataBase64 string) er
 }
 
 func (r *RegInfo) GetAllSrvNos(srvType uint32) ([]uint32, bool) {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
 	key := GetSrvTypeKey(srvType)
 	node, ok := r.getNode(r.treeSrvInfos, key)
 	if !ok {
@@ -137,6 +163,9 @@ func (r *RegInfo) GetAllSrvNos(srvType uint32) ([]uint32, bool) {
 }
 
 func (r *RegInfo) GetAllSrvInfos(srvType uint32) ([]*SrvInfo, bool) {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
 	key := GetSrvTypeKey(srvType)
 	node, ok := r.getNode(r.treeSrvInfos, key)
 	if !ok {
@@ -155,10 +184,16 @@ func (r *RegInfo) GetAllSrvInfos(srvType uint32) ([]*SrvInfo, bool) {
 }
 
 func (r *RegInfo) SetGlobalData(key string, data string) error {
+	r.lckGlobal.Lock()
+	defer r.lckGlobal.Unlock()
+
 	return r.setData(r.treeGlobalInfos, key, data)
 }
 
 func (r *RegInfo) GetGlobalData(key string) (string, bool) {
+	r.lckGlobal.RLock()
+	defer r.lckGlobal.RUnlock()
+
 	data, ok := r.getData(r.treeGlobalInfos, key)
 	if !ok || data == nil {
 		return "", false
@@ -168,15 +203,27 @@ func (r *RegInfo) GetGlobalData(key string) (string, bool) {
 }
 
 func (r *RegInfo) HasGlobalData(key string) bool {
+	r.lckGlobal.RLock()
+	defer r.lckGlobal.RUnlock()
+
 	_, ok := r.getData(r.treeGlobalInfos, key)
 	return ok
 }
 
 func (r *RegInfo) RemoveGlobalData(key string) {
+	r.lckGlobal.Lock()
+	defer r.lckGlobal.Unlock()
+
 	r.removeData(r.treeGlobalInfos, key)
 }
 
 func (r *RegInfo) Load(filePath string) error {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
+	r.lckGlobal.RLock()
+	defer r.lckGlobal.RUnlock()
+
 	// open file
 	f, err := os.Open(filePath)
 	if err != nil {
@@ -210,6 +257,12 @@ func (r *RegInfo) Load(filePath string) error {
 }
 
 func (r *RegInfo) Save(filePath string) error {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
+	r.lckGlobal.RLock()
+	defer r.lckGlobal.RUnlock()
+
 	savedInfo := NewRegSavedInfo()
 	r.marshalSrvInfos(savedInfo, true)
 	r.marshalGlobalInfos(savedInfo)
@@ -226,6 +279,12 @@ func (r *RegInfo) Save(filePath string) error {
 }
 
 func (r *RegInfo) Dump() {
+	r.lckSrv.RLock()
+	defer r.lckSrv.RUnlock()
+
+	r.lckGlobal.RLock()
+	defer r.lckGlobal.RUnlock()
+
 	savedInfo := NewRegSavedInfo()
 	r.marshalSrvInfos(savedInfo, false)
 	r.marshalGlobalInfos(savedInfo)

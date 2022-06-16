@@ -7,6 +7,7 @@ package reg
 import (
 	"encoding/json"
 	"strings"
+	"sync"
 
 	"github.com/yxlib/rpc"
 	"github.com/yxlib/yx"
@@ -44,6 +45,7 @@ type Server struct {
 	info                   *RegInfo
 	savePath               string
 	mapKey2RegObserverList map[string]RegObserverList
+	lckObserver            *sync.RWMutex
 	chanOprPush            chan *DataOprPush
 	evtSave                *yx.Event
 }
@@ -54,6 +56,7 @@ func NewServer(net rpc.Net, savePath string) *Server {
 		info:                   NewRegInfo(),
 		savePath:               savePath,
 		mapKey2RegObserverList: make(map[string]RegObserverList),
+		lckObserver:            &sync.RWMutex{},
 		chanOprPush:            make(chan *DataOprPush, MAX_PUSH_QUE),
 		evtSave:                yx.NewEvent(),
 	}
@@ -130,6 +133,9 @@ func (s *Server) RemoveGlobalData(key string) {
 }
 
 func (s *Server) RemoveAllObserverOfSrv(srvType uint32, srvNo uint32) {
+	s.lckObserver.Lock()
+	defer s.lckObserver.Unlock()
+
 	for key, list := range s.mapKey2RegObserverList {
 		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
 	}
@@ -311,6 +317,9 @@ func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType u
 }
 
 func (s *Server) addObserver(key string, srvType uint32, srvNo uint32) {
+	s.lckObserver.Lock()
+	defer s.lckObserver.Unlock()
+
 	o := &RegObserver{
 		SrvType: srvType,
 		SrvNo:   srvNo,
@@ -337,6 +346,9 @@ func (s *Server) existObserver(list []*RegObserver, srvType uint32, srvNo uint32
 }
 
 func (s *Server) removeObserver(key string, srvType uint32, srvNo uint32) {
+	s.lckObserver.Lock()
+	defer s.lckObserver.Unlock()
+
 	list, ok := s.mapKey2RegObserverList[key]
 	if ok {
 		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
@@ -359,6 +371,9 @@ func (s *Server) removeObserverFromList(list []*RegObserver, srvType uint32, srv
 }
 
 func (s *Server) cloneObserverList(key string) (RegObserverList, bool) {
+	s.lckObserver.RLock()
+	defer s.lckObserver.RUnlock()
+
 	list, ok := s.mapKey2RegObserverList[key]
 	if !ok {
 		return nil, false
