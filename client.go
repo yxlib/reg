@@ -21,6 +21,7 @@ type Client struct {
 	rpcPeer  *rpc.Peer
 	observer *Observer
 	logger   *yx.Logger
+	ec       *yx.ErrCatcher
 }
 
 func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint32, srvPeerNo uint32) *Client {
@@ -28,6 +29,7 @@ func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint32, srvPeerN
 		rpcPeer:  rpc.NewPeer(rpcNet, REG_MARK, srvPeerType, srvPeerNo),
 		observer: NewObserver(observerNet, srvPeerType, srvPeerNo),
 		logger:   yx.NewLogger("reg.Client"),
+		ec:       yx.NewErrCatcher("reg.Client"),
 	}
 }
 
@@ -56,7 +58,7 @@ func (c *Client) ListenDataOprPush(cb func(keyType int, key string, operate int)
 
 func (c *Client) FetchFuncList() error {
 	err := c.rpcPeer.FetchFuncList(c.fetchRegFuncListCb)
-	return err
+	return c.ec.Throw("FetchFuncList", err)
 }
 
 func (c *Client) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, data []byte) error {
@@ -68,7 +70,7 @@ func (c *Client) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, data []byte
 
 	resp := &BaseResp{}
 	err := c.rpcCall("UpdateSrv", req, resp)
-	return err
+	return c.ec.Throw("UpdateSrv", err)
 }
 
 func (c *Client) RemoveSrv(srvType uint32, srvNo uint32) error {
@@ -79,7 +81,7 @@ func (c *Client) RemoveSrv(srvType uint32, srvNo uint32) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("RemoveSrv", req, resp)
-	return err
+	return c.ec.Throw("RemoveSrv", err)
 }
 
 func (c *Client) GetSrv(srvType uint32, srvNo uint32) (*SrvInfo, error) {
@@ -91,7 +93,7 @@ func (c *Client) GetSrv(srvType uint32, srvNo uint32) (*SrvInfo, error) {
 	resp := &GetSrvResp{}
 	err := c.rpcCall("GetSrv", req, resp)
 	if err != nil {
-		return nil, err
+		return nil, c.ec.Throw("GetSrv", err)
 	}
 
 	return resp.Data, nil
@@ -105,7 +107,7 @@ func (c *Client) GetSrvByKey(key string) (*SrvInfo, error) {
 	resp := &GetSrvResp{}
 	err := c.rpcCall("GetSrv", req, resp)
 	if err != nil {
-		return nil, err
+		return nil, c.ec.Throw("GetSrvByKey", err)
 	}
 
 	return resp.Data, nil
@@ -119,7 +121,7 @@ func (c *Client) GetSrvsByType(srvType uint32) ([]*SrvInfo, error) {
 	resp := &GetSrvsByTypeResp{}
 	err := c.rpcCall("GetSrvsByType", req, resp)
 	if err != nil {
-		return nil, err
+		return nil, c.ec.Throw("GetSrvsByType", err)
 	}
 
 	return resp.Data, nil
@@ -133,7 +135,7 @@ func (c *Client) WatchSrv(srvType uint32, srvNo uint32) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("WatchSrv", req, resp)
-	return err
+	return c.ec.Throw("WatchSrv", err)
 }
 
 func (c *Client) StopWatchSrv(srvType uint32, srvNo uint32) error {
@@ -144,7 +146,7 @@ func (c *Client) StopWatchSrv(srvType uint32, srvNo uint32) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("StopWatchSrv", req, resp)
-	return err
+	return c.ec.Throw("StopWatchSrv", err)
 }
 
 func (c *Client) WatchSrvsByType(srvType uint32) error {
@@ -154,7 +156,7 @@ func (c *Client) WatchSrvsByType(srvType uint32) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("WatchSrvsByType", req, resp)
-	return err
+	return c.ec.Throw("WatchSrvsByType", err)
 }
 
 func (c *Client) StopWatchSrvsByType(srvType uint32) error {
@@ -164,7 +166,7 @@ func (c *Client) StopWatchSrvsByType(srvType uint32) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("StopWatchSrvsByType", req, resp)
-	return err
+	return c.ec.Throw("StopWatchSrvsByType", err)
 }
 
 func (c *Client) UpdateGlobalData(key string, data []byte) error {
@@ -175,7 +177,7 @@ func (c *Client) UpdateGlobalData(key string, data []byte) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("UpdateGlobalData", req, resp)
-	return err
+	return c.ec.Throw("UpdateGlobalData", err)
 }
 
 func (c *Client) RemoveGlobalData(key string) error {
@@ -185,7 +187,7 @@ func (c *Client) RemoveGlobalData(key string) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("RemoveGlobalData", req, resp)
-	return err
+	return c.ec.Throw("RemoveGlobalData", err)
 }
 
 func (c *Client) GetGlobalData(key string) ([]byte, error) {
@@ -196,12 +198,12 @@ func (c *Client) GetGlobalData(key string) ([]byte, error) {
 	resp := &GetGlobalDataResp{}
 	err := c.rpcCall("GetGlobalData", req, resp)
 	if err != nil {
-		return nil, err
+		return nil, c.ec.Throw("GetGlobalData", err)
 	}
 
 	data, err := base64.StdEncoding.DecodeString(resp.DataBase64)
 	if err != nil {
-		return nil, err
+		return nil, c.ec.Throw("GetGlobalData", err)
 	}
 
 	return data, nil
@@ -214,7 +216,7 @@ func (c *Client) WatchGlobalData(key string) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("WatchGlobalData", req, resp)
-	return err
+	return c.ec.Throw("WatchGlobalData", err)
 }
 
 func (c *Client) StopWatchGlobalData(key string) error {
@@ -224,7 +226,7 @@ func (c *Client) StopWatchGlobalData(key string) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("StopWatchGlobalData", req, resp)
-	return err
+	return c.ec.Throw("StopWatchGlobalData", err)
 }
 
 func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {
@@ -235,7 +237,7 @@ func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {
 
 	resp := &BaseResp{}
 	err := c.rpcCall("StopAllWatch", req, resp)
-	return err
+	return c.ec.Throw("StopAllWatch", err)
 }
 
 func (c *Client) fetchRegFuncListCb(respData []byte) (*rpc.FetchFuncListResp, error) {
@@ -243,13 +245,16 @@ func (c *Client) fetchRegFuncListCb(respData []byte) (*rpc.FetchFuncListResp, er
 	err := json.Unmarshal(respData, resp)
 	if err != nil {
 		c.logger.E("fetchRegFuncListCb json.Unmarshal err: ", err)
-		return nil, err
+		return nil, c.ec.Throw("fetchRegFuncListCb", err)
 	}
 
 	return resp, nil
 }
 
 func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
+	var err error = nil
+	defer c.ec.DeferThrow("rpcCall", &err)
+
 	reqData, err := json.Marshal(req)
 	if err != nil {
 		c.logger.E("rpcCall json.Marshal err: ", err)
@@ -270,7 +275,8 @@ func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
 
 	if resp.GetResCode() != RES_CODE_SUCC {
 		c.logger.W("rpcCall failed, ", resp.GetResCode(), ", ", resp.GetResMsg())
-		return ErrRegCallFailed
+		err = ErrRegCallFailed
+		return err
 	}
 
 	return nil

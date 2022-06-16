@@ -48,6 +48,8 @@ type Server struct {
 	lckObserver            *sync.RWMutex
 	chanOprPush            chan *DataOprPush
 	evtSave                *yx.Event
+	logger                 *yx.Logger
+	ec                     *yx.ErrCatcher
 }
 
 func NewServer(net rpc.Net, savePath string) *Server {
@@ -59,6 +61,8 @@ func NewServer(net rpc.Net, savePath string) *Server {
 		lckObserver:            &sync.RWMutex{},
 		chanOprPush:            make(chan *DataOprPush, MAX_PUSH_QUE),
 		evtSave:                yx.NewEvent(),
+		logger:                 yx.NewLogger("reg.Server"),
+		ec:                     yx.NewErrCatcher("reg.Server"),
 	}
 
 	s.SetMark(REG_MARK)
@@ -76,6 +80,7 @@ func (s *Server) GetRegInfo() *RegInfo {
 
 func (s *Server) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, dataBase64 string) {
 	var err error = nil
+	defer s.ec.Catch("UpdateSrv", &err)
 
 	ok := s.info.HasSrv(srvType, srvNo)
 	if !ok {
@@ -111,6 +116,7 @@ func (s *Server) RemoveSrv(srvType uint32, srvNo uint32) {
 func (s *Server) UpdateGlobalData(key string, dataBase64 string) {
 	err := s.info.SetGlobalData(key, dataBase64)
 	if err != nil {
+		s.ec.Catch("UpdateGlobalData", &err)
 		return
 	}
 
@@ -425,12 +431,14 @@ func (s *Server) pushDataUpdate(key string, opr int, list []*RegObserver) {
 
 	packData, err := json.Marshal(pushData)
 	if err != nil {
+		s.logger.E("pushDataUpdate json.Marshal err: ", err)
 		return
 	}
 
 	h := rpc.NewPackHeader([]byte(PUSH_MARK), 0, DATA_OPR_PUSH_FUNC_NO)
 	headerData, err := h.Marshal()
 	if err != nil {
+		s.logger.E("pushDataUpdate PackHeader.Marshal err: ", err)
 		return
 	}
 

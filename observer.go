@@ -8,17 +8,20 @@ import (
 	"encoding/json"
 
 	"github.com/yxlib/rpc"
+	"github.com/yxlib/yx"
 )
 
 type Observer struct {
 	net             rpc.Net
 	chanDataOprPush chan *DataOprPush
+	logger          *yx.Logger
 }
 
 func NewObserver(net rpc.Net, peerType uint32, peerNo uint32) *Observer {
 	o := &Observer{
 		net:             net,
 		chanDataOprPush: make(chan *DataOprPush),
+		logger:          yx.NewLogger("reg.Observer"),
 	}
 
 	o.net.SetReadMark(PUSH_MARK, false, peerType, peerNo)
@@ -63,6 +66,7 @@ func (o *Observer) handlePack(funcNo uint16, payload []byte) {
 		pushPack := &DataOprPush{}
 		err := json.Unmarshal(payload, pushPack)
 		if err != nil {
+			o.logger.E("handlePack json.Unmarshal err: ", err)
 			return
 		}
 
