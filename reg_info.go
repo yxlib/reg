@@ -218,12 +218,6 @@ func (r *RegInfo) RemoveGlobalData(key string) {
 }
 
 func (r *RegInfo) Load(filePath string) error {
-	r.lckSrv.RLock()
-	defer r.lckSrv.RUnlock()
-
-	r.lckGlobal.RLock()
-	defer r.lckGlobal.RUnlock()
-
 	// open file
 	f, err := os.Open(filePath)
 	if err != nil {
