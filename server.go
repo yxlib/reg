@@ -129,6 +129,12 @@ func (s *Server) RemoveGlobalData(key string) {
 	}
 }
 
+func (s *Server) RemoveAllObserverOfSrv(srvType uint32, srvNo uint32) {
+	for key, list := range s.mapKey2RegObserverList {
+		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
+	}
+}
+
 func (s *Server) Start() {
 	go s.pushLoop()
 	go s.saveLoop()
@@ -297,7 +303,7 @@ func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPee
 
 func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopAllWatchReq)
-	s.removeAllObserverOfSrv(reqData.SrvType, reqData.SrvNo)
+	s.RemoveAllObserverOfSrv(reqData.SrvType, reqData.SrvNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -333,12 +339,6 @@ func (s *Server) existObserver(list []*RegObserver, srvType uint32, srvNo uint32
 func (s *Server) removeObserver(key string, srvType uint32, srvNo uint32) {
 	list, ok := s.mapKey2RegObserverList[key]
 	if ok {
-		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
-	}
-}
-
-func (s *Server) removeAllObserverOfSrv(srvType uint32, srvNo uint32) {
-	for key, list := range s.mapKey2RegObserverList {
 		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
 	}
 }
