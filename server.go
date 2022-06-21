@@ -45,8 +45,11 @@ type Server struct {
 	info                   *RegInfo
 	savePath               string
 	mapKey2RegObserverList map[string]RegObserverList
-	lckObserver            *sync.RWMutex
+	lckInfoObserver        *sync.RWMutex
 	chanOprPush            chan *DataOprPush
+	connObserverList       RegObserverList
+	lckConnObserver        *sync.RWMutex
+	chanConnChange         chan *ConnChangePush
 	evtSave                *yx.Event
 	logger                 *yx.Logger
 	ec                     *yx.ErrCatcher
@@ -58,8 +61,11 @@ func NewServer(net rpc.Net, savePath string) *Server {
 		info:                   NewRegInfo(),
 		savePath:               savePath,
 		mapKey2RegObserverList: make(map[string]RegObserverList),
-		lckObserver:            &sync.RWMutex{},
+		lckInfoObserver:        &sync.RWMutex{},
 		chanOprPush:            make(chan *DataOprPush, MAX_PUSH_QUE),
+		connObserverList:       make([]*RegObserver, 0),
+		lckConnObserver:        &sync.RWMutex{},
+		chanConnChange:         make(chan *ConnChangePush, MAX_PUSH_QUE),
 		evtSave:                yx.NewEvent(),
 		logger:                 yx.NewLogger("reg.Server"),
 		ec:                     yx.NewErrCatcher("reg.Server"),
@@ -139,12 +145,13 @@ func (s *Server) RemoveGlobalData(key string) {
 }
 
 func (s *Server) RemoveAllObserverOfSrv(srvType uint32, srvNo uint32) {
-	s.lckObserver.Lock()
-	defer s.lckObserver.Unlock()
+	s.removeAllInfoObserverOfSrv(srvType, srvNo)
+	s.removeConnObserver(srvType, srvNo)
+}
 
-	for key, list := range s.mapKey2RegObserverList {
-		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
-	}
+func (s *Server) NotifyConnChange(srvType uint32, srvNo uint32, connChangeType int) {
+	pushData := NewConnChangePush(srvType, srvNo, connChangeType)
+	s.chanConnChange <- pushData
 }
 
 func (s *Server) Start() {
@@ -157,6 +164,7 @@ func (s *Server) Stop() {
 	s.BaseServer.Stop()
 	s.evtSave.Close()
 	close(s.chanOprPush)
+	close(s.chanConnChange)
 }
 
 func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
@@ -225,7 +233,7 @@ func (s *Server) OnGetSrvsByType(req interface{}, resp interface{}, srcPeerType 
 func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*WatchSrvReq)
 	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
-	s.addObserver(key, srcPeerType, srcPeerNo)
+	s.addInfoObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -235,7 +243,7 @@ func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint3
 func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopWatchSrvReq)
 	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
-	s.removeObserver(key, srcPeerType, srcPeerNo)
+	s.removeInfoObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -245,7 +253,7 @@ func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType u
 func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*WatchSrvsByTypeReq)
 	key := GetSrvTypeKey(reqData.SrvType)
-	s.addObserver(key, srcPeerType, srcPeerNo)
+	s.addInfoObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -255,7 +263,7 @@ func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerTyp
 func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopWatchSrvsByTypeReq)
 	key := GetSrvTypeKey(reqData.SrvType)
-	s.removeObserver(key, srcPeerType, srcPeerNo)
+	s.removeInfoObserver(key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -297,7 +305,7 @@ func (s *Server) OnGetGlobalData(req interface{}, resp interface{}, srcPeerType 
 
 func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*WatchGlobalDataReq)
-	s.addObserver(reqData.Key, srcPeerType, srcPeerNo)
+	s.addInfoObserver(reqData.Key, srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -306,7 +314,25 @@ func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerTyp
 
 func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
 	reqData := req.(*StopWatchGlobalDataReq)
-	s.removeObserver(reqData.Key, srcPeerType, srcPeerNo)
+	s.removeInfoObserver(reqData.Key, srcPeerType, srcPeerNo)
+
+	respData := resp.(*BaseResp)
+	respData.SetResult(RES_CODE_SUCC, "")
+	return nil
+}
+
+func (s *Server) OnWatchConn(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+	// reqData := req.(*WatchConnReq)
+	s.addConnObserver(srcPeerType, srcPeerNo)
+
+	respData := resp.(*BaseResp)
+	respData.SetResult(RES_CODE_SUCC, "")
+	return nil
+}
+
+func (s *Server) OnStopWatchConn(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+	// reqData := req.(*StopWatchConnReq)
+	s.removeConnObserver(srcPeerType, srcPeerNo)
 
 	respData := resp.(*BaseResp)
 	respData.SetResult(RES_CODE_SUCC, "")
@@ -322,14 +348,9 @@ func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType u
 	return nil
 }
 
-func (s *Server) addObserver(key string, srvType uint32, srvNo uint32) {
-	s.lckObserver.Lock()
-	defer s.lckObserver.Unlock()
-
-	o := &RegObserver{
-		SrvType: srvType,
-		SrvNo:   srvNo,
-	}
+func (s *Server) addInfoObserver(key string, srvType uint32, srvNo uint32) {
+	s.lckInfoObserver.Lock()
+	defer s.lckInfoObserver.Unlock()
 
 	list, ok := s.mapKey2RegObserverList[key]
 	if !ok {
@@ -338,7 +359,77 @@ func (s *Server) addObserver(key string, srvType uint32, srvNo uint32) {
 		return
 	}
 
+	o := &RegObserver{
+		SrvType: srvType,
+		SrvNo:   srvNo,
+	}
+
 	s.mapKey2RegObserverList[key] = append(list, o)
+}
+
+func (s *Server) removeInfoObserver(key string, srvType uint32, srvNo uint32) {
+	s.lckInfoObserver.Lock()
+	defer s.lckInfoObserver.Unlock()
+
+	list, ok := s.mapKey2RegObserverList[key]
+	if ok {
+		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
+	}
+}
+
+func (s *Server) removeAllInfoObserverOfSrv(srvType uint32, srvNo uint32) {
+	s.lckInfoObserver.Lock()
+	defer s.lckInfoObserver.Unlock()
+
+	for key, list := range s.mapKey2RegObserverList {
+		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
+	}
+}
+
+func (s *Server) cloneInfoObserverList(key string) (RegObserverList, bool) {
+	s.lckInfoObserver.RLock()
+	defer s.lckInfoObserver.RUnlock()
+
+	list, ok := s.mapKey2RegObserverList[key]
+	if !ok {
+		return nil, false
+	}
+
+	cloneList := make(RegObserverList, len(list))
+	copy(cloneList, list)
+	return cloneList, ok
+}
+
+func (s *Server) addConnObserver(srvType uint32, srvNo uint32) {
+	s.lckConnObserver.Lock()
+	defer s.lckConnObserver.Unlock()
+
+	if s.existObserver(s.connObserverList, srvType, srvNo) {
+		return
+	}
+
+	o := &RegObserver{
+		SrvType: srvType,
+		SrvNo:   srvNo,
+	}
+
+	s.connObserverList = append(s.connObserverList, o)
+}
+
+func (s *Server) removeConnObserver(srvType uint32, srvNo uint32) {
+	s.lckConnObserver.Lock()
+	defer s.lckConnObserver.Unlock()
+
+	s.connObserverList = s.removeObserverFromList(s.connObserverList, srvType, srvNo)
+}
+
+func (s *Server) cloneConnObserverList() RegObserverList {
+	s.lckConnObserver.RLock()
+	defer s.lckConnObserver.RUnlock()
+
+	cloneList := make(RegObserverList, len(s.connObserverList))
+	copy(cloneList, s.connObserverList)
+	return cloneList
 }
 
 func (s *Server) existObserver(list []*RegObserver, srvType uint32, srvNo uint32) bool {
@@ -349,16 +440,6 @@ func (s *Server) existObserver(list []*RegObserver, srvType uint32, srvNo uint32
 	}
 
 	return false
-}
-
-func (s *Server) removeObserver(key string, srvType uint32, srvNo uint32) {
-	s.lckObserver.Lock()
-	defer s.lckObserver.Unlock()
-
-	list, ok := s.mapKey2RegObserverList[key]
-	if ok {
-		s.mapKey2RegObserverList[key] = s.removeObserverFromList(list, srvType, srvNo)
-	}
 }
 
 func (s *Server) removeObserverFromList(list []*RegObserver, srvType uint32, srvNo uint32) []*RegObserver {
@@ -376,69 +457,80 @@ func (s *Server) removeObserverFromList(list []*RegObserver, srvType uint32, srv
 	return list
 }
 
-func (s *Server) cloneObserverList(key string) (RegObserverList, bool) {
-	s.lckObserver.RLock()
-	defer s.lckObserver.RUnlock()
-
-	list, ok := s.mapKey2RegObserverList[key]
-	if !ok {
-		return nil, false
-	}
-
-	cloneList := make(RegObserverList, len(list))
-	copy(cloneList, list)
-	return cloneList, ok
-}
-
 func (s *Server) pushLoop() {
 	for {
-		pushData, ok := <-s.chanOprPush
-		if !ok {
-			break
-		}
+		select {
+		case pushData, ok := <-s.chanOprPush:
+			if !ok {
+				goto Exit0
+			}
 
-		s.notifyDataUpdate(pushData.Key, pushData.Operate)
+			s.notifyDataUpdate(pushData)
+
+		case pushData, ok := <-s.chanConnChange:
+			if !ok {
+				goto Exit0
+			}
+
+			s.notifyConnChange(pushData)
+		}
 	}
+
+Exit0:
+	return
 }
 
-func (s *Server) notifyDataUpdate(key string, opr int) {
-	list, ok := s.cloneObserverList(key)
+func (s *Server) notifyDataUpdate(pushData *DataOprPush) {
+	list, ok := s.cloneInfoObserverList(pushData.Key)
 	if ok {
-		s.pushDataUpdate(key, opr, list)
+		s.push(pushData, DATA_OPR_PUSH_FUNC_NO, list)
 	}
 
-	idx := strings.LastIndex(key, "/")
+	idx := strings.LastIndex(pushData.Key, "/")
 	if idx <= 0 {
 		return
 	}
 
-	parentKey := key[:idx]
-	list, ok = s.cloneObserverList(parentKey)
+	parentKey := pushData.Key[:idx]
+	list, ok = s.cloneInfoObserverList(parentKey)
 	if ok {
-		s.pushDataUpdate(key, opr, list)
+		s.push(pushData, DATA_OPR_PUSH_FUNC_NO, list)
 	}
 }
 
-func (s *Server) pushDataUpdate(key string, opr int, list []*RegObserver) {
+// func (s *Server) pushDataUpdate(key string, opr int, list []*RegObserver) {
+// 	if len(list) == 0 {
+// 		return
+// 	}
+
+// 	pushData := &DataOprPush{
+// 		Key:     key,
+// 		Operate: opr,
+// 	}
+
+// 	s.push(pushData, list)
+// }
+
+func (s *Server) notifyConnChange(pushData *ConnChangePush) {
+	list := s.cloneConnObserverList()
+	s.push(pushData, CONN_CHANGE_FUNC_NO, list)
+}
+
+func (s *Server) push(pushData interface{}, funcNo uint16, list []*RegObserver) {
 	if len(list) == 0 {
 		return
 	}
 
-	pushData := &DataOprPush{
-		Key:     key,
-		Operate: opr,
-	}
-
 	packData, err := json.Marshal(pushData)
 	if err != nil {
-		s.logger.E("pushDataUpdate json.Marshal err: ", err)
+		s.logger.E("push json.Marshal err: ", err)
 		return
 	}
 
-	h := rpc.NewPackHeader([]byte(PUSH_MARK), 0, DATA_OPR_PUSH_FUNC_NO)
+	h := rpc.NewPackHeader([]byte(PUSH_MARK), 0, funcNo)
 	headerData, err := h.Marshal()
 	if err != nil {
-		s.logger.E("pushDataUpdate PackHeader.Marshal err: ", err)
+		s.logger.E("push PackHeader.Marshal err: ", err)
 		return
 	}
 

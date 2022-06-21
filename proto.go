@@ -9,6 +9,7 @@ const (
 	TIME_OUT_SEC          = 3
 	PUSH_MARK             = "REG_PUSH"
 	DATA_OPR_PUSH_FUNC_NO = 1
+	CONN_CHANGE_FUNC_NO   = 2
 )
 
 const (
@@ -178,6 +179,22 @@ type StopWatchGlobalDataReq struct {
 // 	BaseResp
 // }
 
+// WatchConn
+type WatchConnReq struct {
+}
+
+// type WatchConnResp struct {
+// 	BaseResp
+// }
+
+// StopWatchConnReq
+type StopWatchConnReq struct {
+}
+
+// type StopWatchConnResp struct {
+// 	BaseResp
+// }
+
 type StopAllWatchReq struct {
 	SrvType uint32 `json:"type"`
 	SrvNo   uint32 `json:"no"`
@@ -203,5 +220,24 @@ func NewDataOprPush(keyType int, key string, operate int) *DataOprPush {
 		KeyType: keyType,
 		Key:     key,
 		Operate: operate,
+	}
+}
+
+const (
+	CONN_CHANGE_TYPE_OPEN = 1 + iota
+	CONN_CHANGE_TYPE_CLOSE
+)
+
+type ConnChangePush struct {
+	SrvType        uint32 `json:"type"`
+	SrvNo          uint32 `json:"no"`
+	ConnChangeType int    `json:"change"`
+}
+
+func NewConnChangePush(srvType uint32, srvNo uint32, connChangeType int) *ConnChangePush {
+	return &ConnChangePush{
+		SrvType:        srvType,
+		SrvNo:          srvNo,
+		ConnChangeType: connChangeType,
 	}
 }

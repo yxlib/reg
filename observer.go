@@ -12,16 +12,18 @@ import (
 )
 
 type Observer struct {
-	net             rpc.Net
-	chanDataOprPush chan *DataOprPush
-	logger          *yx.Logger
+	net                rpc.Net
+	chanDataOprPush    chan *DataOprPush
+	chanConnChangePush chan *ConnChangePush
+	logger             *yx.Logger
 }
 
 func NewObserver(net rpc.Net, peerType uint32, peerNo uint32) *Observer {
 	o := &Observer{
-		net:             net,
-		chanDataOprPush: make(chan *DataOprPush),
-		logger:          yx.NewLogger("reg.Observer"),
+		net:                net,
+		chanDataOprPush:    make(chan *DataOprPush),
+		chanConnChangePush: make(chan *ConnChangePush),
+		logger:             yx.NewLogger("reg.Observer"),
 	}
 
 	o.net.SetReadMark(PUSH_MARK, false, peerType, peerNo)
@@ -38,6 +40,11 @@ func (o *Observer) Stop() {
 
 func (o *Observer) PopDataOprPack() (*DataOprPush, bool) {
 	pack, ok := <-o.chanDataOprPush
+	return pack, ok
+}
+
+func (o *Observer) PopConnChangePack() (*ConnChangePush, bool) {
+	pack, ok := <-o.chanConnChangePush
 	return pack, ok
 }
 
@@ -59,6 +66,7 @@ func (o *Observer) readPackLoop() {
 	}
 
 	close(o.chanDataOprPush)
+	close(o.chanConnChangePush)
 }
 
 func (o *Observer) handlePack(funcNo uint16, payload []byte) {
@@ -71,5 +79,15 @@ func (o *Observer) handlePack(funcNo uint16, payload []byte) {
 		}
 
 		o.chanDataOprPush <- pushPack
+
+	} else if funcNo == CONN_CHANGE_FUNC_NO {
+		pushPack := &ConnChangePush{}
+		err := json.Unmarshal(payload, pushPack)
+		if err != nil {
+			o.logger.E("handlePack json.Unmarshal err: ", err)
+			return
+		}
+
+		o.chanConnChangePush <- pushPack
 	}
 }

@@ -46,6 +46,10 @@ func (c *Client) Stop() {
 }
 
 func (c *Client) ListenDataOprPush(cb func(keyType int, key string, operate int)) {
+	if cb == nil {
+		return
+	}
+
 	for {
 		pack, ok := c.observer.PopDataOprPack()
 		if !ok {
@@ -53,6 +57,21 @@ func (c *Client) ListenDataOprPush(cb func(keyType int, key string, operate int)
 		}
 
 		cb(pack.KeyType, pack.Key, pack.Operate)
+	}
+}
+
+func (c *Client) ListenConnChangePush(cb func(srvType uint32, srvNo uint32, connChangeType int)) {
+	if cb == nil {
+		return
+	}
+
+	for {
+		pack, ok := c.observer.PopConnChangePack()
+		if !ok {
+			break
+		}
+
+		cb(pack.SrvType, pack.SrvNo, pack.ConnChangeType)
 	}
 }
 
@@ -227,6 +246,20 @@ func (c *Client) StopWatchGlobalData(key string) error {
 	resp := &BaseResp{}
 	err := c.rpcCall("StopWatchGlobalData", req, resp)
 	return c.ec.Throw("StopWatchGlobalData", err)
+}
+
+func (c *Client) WatchConn() error {
+	req := &WatchConnReq{}
+	resp := &BaseResp{}
+	err := c.rpcCall("WatchConn", req, resp)
+	return c.ec.Throw("WatchConn", err)
+}
+
+func (c *Client) StopWatchConn() error {
+	req := &StopWatchConnReq{}
+	resp := &BaseResp{}
+	err := c.rpcCall("StopWatchConn", req, resp)
+	return c.ec.Throw("StopWatchConn", err)
 }
 
 func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {

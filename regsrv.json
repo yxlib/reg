@@ -84,8 +84,19 @@
             "handler" : "OnStopWatchGlobalData",
             "req" : "github.com/yxlib/reg.StopWatchGlobalDataReq",
             "resp" : "github.com/yxlib/reg.BaseResp"
-        }
-        ,
+        },
+        "WatchConn" :
+        {
+            "handler" : "OnWatchConn",
+            "req" : "github.com/yxlib/reg.WatchConnReq",
+            "resp" : "github.com/yxlib/reg.BaseResp"
+        },
+        "StopWatchConn" :
+        {
+            "handler" : "OnStopWatchConn",
+            "req" : "github.com/yxlib/reg.StopWatchConnReq",
+            "resp" : "github.com/yxlib/reg.BaseResp"
+        },
         "StopAllWatch" :
         {
             "handler" : "OnStopAllWatch",
