@@ -124,7 +124,7 @@ func (c *Client) GetSrvByKey(key string) (*SrvInfo, error) {
 	}
 
 	resp := &GetSrvResp{}
-	err := c.rpcCall("GetSrv", req, resp)
+	err := c.rpcCall("GetSrvByKey", req, resp)
 	if err != nil {
 		return nil, c.ec.Throw("GetSrvByKey", err)
 	}
