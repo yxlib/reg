@@ -294,7 +294,9 @@ func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
 		return err
 	}
 
-	respData, err := c.rpcPeer.Call(funcName, reqData)
+	params := make([]rpc.ByteArray, 0)
+	params = append(params, reqData)
+	respData, err := c.rpcPeer.Call(funcName, params)
 	if err != nil {
 		c.logger.E("rpcCall rpcPeer.Call err: ", err)
 		return err
