@@ -6,7 +6,6 @@ package reg
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 
 	"github.com/yxlib/rpc"
@@ -18,7 +17,7 @@ var (
 )
 
 type Client struct {
-	rpcPeer  *rpc.Peer
+	rpcPeer  *rpc.Pipeline
 	observer *Observer
 	logger   *yx.Logger
 	ec       *yx.ErrCatcher
@@ -26,7 +25,7 @@ type Client struct {
 
 func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint32, srvPeerNo uint32) *Client {
 	return &Client{
-		rpcPeer:  rpc.NewPeer(rpcNet, REG_MARK, srvPeerType, srvPeerNo),
+		rpcPeer:  rpc.NewPipeline(rpcNet, srvPeerType, srvPeerNo, REG_SRV),
 		observer: NewObserver(observerNet, srvPeerType, srvPeerNo),
 		logger:   yx.NewLogger("reg.Client"),
 		ec:       yx.NewErrCatcher("reg.Client"),
@@ -34,6 +33,7 @@ func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint32, srvPeerN
 }
 
 func (c *Client) Start() {
+	c.rpcPeer.SetInterceptor(&rpc.JsonPipelineInterceptor{})
 	c.rpcPeer.SetTimeout(TIME_OUT_SEC)
 
 	go c.observer.Start()
@@ -76,7 +76,7 @@ func (c *Client) ListenConnChangePush(cb func(srvType uint32, srvNo uint32, conn
 }
 
 func (c *Client) FetchFuncList() error {
-	err := c.rpcPeer.FetchFuncList(c.fetchRegFuncListCb)
+	err := c.rpcPeer.FetchFuncList()
 	return c.ec.Throw("FetchFuncList", err)
 }
 
@@ -273,40 +273,40 @@ func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {
 	return c.ec.Throw("StopAllWatch", err)
 }
 
-func (c *Client) fetchRegFuncListCb(respData []byte) (*rpc.FetchFuncListResp, error) {
-	resp := &rpc.FetchFuncListResp{}
-	err := json.Unmarshal(respData, resp)
-	if err != nil {
-		c.logger.E("fetchRegFuncListCb json.Unmarshal err: ", err)
-		return nil, c.ec.Throw("fetchRegFuncListCb", err)
-	}
+// func (c *Client) fetchRegFuncListCb(respData []byte) (*rpc.FetchFuncListResp, error) {
+// 	resp := &rpc.FetchFuncListResp{}
+// 	err := json.Unmarshal(respData, resp)
+// 	if err != nil {
+// 		c.logger.E("fetchRegFuncListCb json.Unmarshal err: ", err)
+// 		return nil, c.ec.Throw("fetchRegFuncListCb", err)
+// 	}
 
-	return resp, nil
-}
+// 	return resp, nil
+// }
 
 func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
 	var err error = nil
 	defer c.ec.DeferThrow("rpcCall", &err)
 
-	reqData, err := json.Marshal(req)
-	if err != nil {
-		c.logger.E("rpcCall json.Marshal err: ", err)
-		return err
-	}
+	// reqData, err := json.Marshal(req)
+	// if err != nil {
+	// 	c.logger.E("rpcCall json.Marshal err: ", err)
+	// 	return err
+	// }
 
-	params := make([]rpc.ByteArray, 0)
-	params = append(params, reqData)
-	respData, err := c.rpcPeer.Call(funcName, params)
+	// params := make([]rpc.ByteArray, 0)
+	// params = append(params, reqData)
+	err = c.rpcPeer.Call(funcName, req, resp)
 	if err != nil {
 		c.logger.E("rpcCall rpcPeer.Call err: ", err)
 		return err
 	}
 
-	err = json.Unmarshal(respData, resp)
-	if err != nil {
-		c.logger.E("rpcCall json.Unmarshal err: ", err)
-		return err
-	}
+	// err = json.Unmarshal(respData, resp)
+	// if err != nil {
+	// 	c.logger.E("rpcCall json.Unmarshal err: ", err)
+	// 	return err
+	// }
 
 	if resp.GetResCode() != RES_CODE_SUCC {
 		c.logger.W("rpcCall failed, ", resp.GetResCode(), ", ", resp.GetResMsg())

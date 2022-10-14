@@ -5,7 +5,7 @@
 package reg
 
 const (
-	REG_MARK              = "REG_SRV"
+	REG_SRV               = "REG_SRV"
 	TIME_OUT_SEC          = 3
 	PUSH_MARK             = "REG_PUSH"
 	DATA_OPR_PUSH_FUNC_NO = 1

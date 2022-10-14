@@ -41,7 +41,7 @@ func (o *RegObserver) IsSameObserver(srvType uint32, srvNo uint32) bool {
 type RegObserverList = []*RegObserver
 
 type Server struct {
-	*rpc.BaseServer
+	*rpc.BaseService
 	info                   *RegInfo
 	savePath               string
 	mapKey2RegObserverList map[string]RegObserverList
@@ -57,7 +57,7 @@ type Server struct {
 
 func NewServer(net rpc.Net, savePath string) *Server {
 	s := &Server{
-		BaseServer:             rpc.NewBaseServer(net),
+		BaseService:            rpc.NewBaseService(net, REG_SRV),
 		info:                   NewRegInfo(),
 		savePath:               savePath,
 		mapKey2RegObserverList: make(map[string]RegObserverList),
@@ -71,8 +71,7 @@ func NewServer(net rpc.Net, savePath string) *Server {
 		ec:                     yx.NewErrCatcher("reg.Server"),
 	}
 
-	s.SetMark(REG_MARK)
-	s.SetInterceptor(&rpc.JsonInterceptor{})
+	s.SetInterceptor(&rpc.JsonServInterceptor{})
 	return s
 }
 
@@ -157,11 +156,11 @@ func (s *Server) NotifyConnChange(srvType uint32, srvNo uint32, connChangeType i
 func (s *Server) Start() {
 	go s.pushLoop()
 	go s.saveLoop()
-	s.BaseServer.Start()
+	s.BaseService.Start()
 }
 
 func (s *Server) Stop() {
-	s.BaseServer.Stop()
+	s.BaseService.Stop()
 	s.evtSave.Close()
 	close(s.chanOprPush)
 	close(s.chanConnChange)
@@ -527,7 +526,7 @@ func (s *Server) push(pushData interface{}, funcNo uint16, list []*RegObserver) 
 		return
 	}
 
-	h := rpc.NewPackHeader([]byte(PUSH_MARK), 0, funcNo)
+	h := rpc.NewPackHeader(PUSH_MARK, 0, funcNo)
 	headerData, err := h.Marshal()
 	if err != nil {
 		s.logger.E("push PackHeader.Marshal err: ", err)
@@ -538,7 +537,7 @@ func (s *Server) push(pushData interface{}, funcNo uint16, list []*RegObserver) 
 	payload = append(payload, headerData, packData)
 
 	for _, observer := range list {
-		s.WritePack(payload, observer.SrvType, observer.SrvNo)
+		s.WritePack(observer.SrvType, observer.SrvNo, payload...)
 	}
 }
 

@@ -26,7 +26,7 @@ func NewObserver(net rpc.Net, peerType uint32, peerNo uint32) *Observer {
 		logger:             yx.NewLogger("reg.Observer"),
 	}
 
-	o.net.SetReadMark(PUSH_MARK, false, peerType, peerNo)
+	o.net.SetService(PUSH_MARK, false, peerType, peerNo)
 	return o
 }
 
@@ -55,7 +55,7 @@ func (o *Observer) readPackLoop() {
 			break
 		}
 
-		h := rpc.NewPackHeader([]byte(PUSH_MARK), 0, 0)
+		h := rpc.NewPackHeader(PUSH_MARK, 0, 0)
 		err = h.Unmarshal(data.Payload)
 		if err != nil {
 			continue

@@ -1,107 +1,112 @@
 {
-    "mark" : "REG_SRV",
-    "func" :
-    {
-        "FetchFuncList" :
+    "services" : [
         {
-            "handler" : "OnFetchFuncList",
-            "resp" : "github.com/yxlib/rpc.FetchFuncListResp"
-        },
-        "UpdateSrv" :
-        {
-            "handler" : "OnUpdateSrv",
-            "req" : "github.com/yxlib/reg.UpdateSrvReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "RemoveSrv" :
-        {
-            "handler" : "OnRemoveSrv",
-            "req" : "github.com/yxlib/reg.RemoveSrvReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "GetSrv" :
-        {
-            "handler" : "OnGetSrv",
-            "req" : "github.com/yxlib/reg.GetSrvReq",
-            "resp" : "github.com/yxlib/reg.GetSrvResp"
-        },
-        "GetSrvsByType" :
-        {
-            "handler" : "OnGetSrvsByType",
-            "req" : "github.com/yxlib/reg.GetSrvsByTypeReq",
-            "resp" : "github.com/yxlib/reg.GetSrvsByTypeResp"
-        },
-        "WatchSrv" :
-        {
-            "handler" : "OnWatchSrv",
-            "req" : "github.com/yxlib/reg.WatchSrvReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "StopWatchSrv" :
-        {
-            "handler" : "OnStopWatchSrv",
-            "req" : "github.com/yxlib/reg.StopWatchSrvReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "WatchSrvsByType" :
-        {
-            "handler" : "OnWatchSrvsByType",
-            "req" : "github.com/yxlib/reg.WatchSrvsByTypeReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "StopWatchSrvsByType" :
-        {
-            "handler" : "OnStopWatchSrvsByType",
-            "req" : "github.com/yxlib/reg.StopWatchSrvsByTypeReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "UpdateGlobalData" :
-        {
-            "handler" : "OnUpdateGlobalData",
-            "req" : "github.com/yxlib/reg.UpdateGlobalDataReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "RemoveGlobalData" :
-        {
-            "handler" : "OnRemoveGlobalData",
-            "req" : "github.com/yxlib/reg.RemoveGlobalDataReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "GetGlobalData" :
-        {
-            "handler" : "OnGetGlobalData",
-            "req" : "github.com/yxlib/reg.GetGlobalDataReq",
-            "resp" : "github.com/yxlib/reg.GetGlobalDataResp"
-        },
-        "WatchGlobalData" :
-        {
-            "handler" : "OnWatchGlobalData",
-            "req" : "github.com/yxlib/reg.WatchGlobalDataReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "StopWatchGlobalData" :
-        {
-            "handler" : "OnStopWatchGlobalData",
-            "req" : "github.com/yxlib/reg.StopWatchGlobalDataReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "WatchConn" :
-        {
-            "handler" : "OnWatchConn",
-            "req" : "github.com/yxlib/reg.WatchConnReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "StopWatchConn" :
-        {
-            "handler" : "OnStopWatchConn",
-            "req" : "github.com/yxlib/reg.StopWatchConnReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
-        },
-        "StopAllWatch" :
-        {
-            "handler" : "OnStopAllWatch",
-            "req" : "github.com/yxlib/reg.StopAllWatchReq",
-            "resp" : "github.com/yxlib/reg.BaseResp"
+            "net" : "github.com/yxlib/rpc.SrvNet",
+            "name" : "REG_SRV",
+            "func" :
+            {
+                "FetchFuncList" :
+                {
+                    "handler" : "OnFetchFuncList",
+                    "resp" : "github.com/yxlib/rpc.FetchFuncListResp"
+                },
+                "UpdateSrv" :
+                {
+                    "handler" : "OnUpdateSrv",
+                    "req" : "github.com/yxlib/reg.UpdateSrvReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "RemoveSrv" :
+                {
+                    "handler" : "OnRemoveSrv",
+                    "req" : "github.com/yxlib/reg.RemoveSrvReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "GetSrv" :
+                {
+                    "handler" : "OnGetSrv",
+                    "req" : "github.com/yxlib/reg.GetSrvReq",
+                    "resp" : "github.com/yxlib/reg.GetSrvResp"
+                },
+                "GetSrvsByType" :
+                {
+                    "handler" : "OnGetSrvsByType",
+                    "req" : "github.com/yxlib/reg.GetSrvsByTypeReq",
+                    "resp" : "github.com/yxlib/reg.GetSrvsByTypeResp"
+                },
+                "WatchSrv" :
+                {
+                    "handler" : "OnWatchSrv",
+                    "req" : "github.com/yxlib/reg.WatchSrvReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "StopWatchSrv" :
+                {
+                    "handler" : "OnStopWatchSrv",
+                    "req" : "github.com/yxlib/reg.StopWatchSrvReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "WatchSrvsByType" :
+                {
+                    "handler" : "OnWatchSrvsByType",
+                    "req" : "github.com/yxlib/reg.WatchSrvsByTypeReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "StopWatchSrvsByType" :
+                {
+                    "handler" : "OnStopWatchSrvsByType",
+                    "req" : "github.com/yxlib/reg.StopWatchSrvsByTypeReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "UpdateGlobalData" :
+                {
+                    "handler" : "OnUpdateGlobalData",
+                    "req" : "github.com/yxlib/reg.UpdateGlobalDataReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "RemoveGlobalData" :
+                {
+                    "handler" : "OnRemoveGlobalData",
+                    "req" : "github.com/yxlib/reg.RemoveGlobalDataReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "GetGlobalData" :
+                {
+                    "handler" : "OnGetGlobalData",
+                    "req" : "github.com/yxlib/reg.GetGlobalDataReq",
+                    "resp" : "github.com/yxlib/reg.GetGlobalDataResp"
+                },
+                "WatchGlobalData" :
+                {
+                    "handler" : "OnWatchGlobalData",
+                    "req" : "github.com/yxlib/reg.WatchGlobalDataReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "StopWatchGlobalData" :
+                {
+                    "handler" : "OnStopWatchGlobalData",
+                    "req" : "github.com/yxlib/reg.StopWatchGlobalDataReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "WatchConn" :
+                {
+                    "handler" : "OnWatchConn",
+                    "req" : "github.com/yxlib/reg.WatchConnReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "StopWatchConn" :
+                {
+                    "handler" : "OnStopWatchConn",
+                    "req" : "github.com/yxlib/reg.StopWatchConnReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                },
+                "StopAllWatch" :
+                {
+                    "handler" : "OnStopAllWatch",
+                    "req" : "github.com/yxlib/reg.StopAllWatchReq",
+                    "resp" : "github.com/yxlib/reg.BaseResp"
+                }
+            }
         }
-    }
+    ]
 }
