@@ -57,7 +57,7 @@ type Server struct {
 
 func NewServer(net rpc.Net, savePath string) *Server {
 	s := &Server{
-		BaseService:            rpc.NewBaseService(net, REG_SRV),
+		BaseService:            rpc.NewBaseService(net),
 		info:                   NewRegInfo(),
 		savePath:               savePath,
 		mapKey2RegObserverList: make(map[string]RegObserverList),
@@ -71,6 +71,7 @@ func NewServer(net rpc.Net, savePath string) *Server {
 		ec:                     yx.NewErrCatcher("reg.Server"),
 	}
 
+	s.SetName(REG_SRV)
 	s.SetInterceptor(&rpc.JsonServInterceptor{})
 	return s
 }

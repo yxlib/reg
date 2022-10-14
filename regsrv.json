@@ -1,8 +1,8 @@
 {
     "services" : [
         {
-            "net" : "github.com/yxlib/rpc.SrvNet",
             "name" : "REG_SRV",
+            "service" : "github.com/yxlib/reg.Server",
             "func" :
             {
                 "FetchFuncList" :
