@@ -50,14 +50,7 @@ func (c *Client) ListenDataOprPush(cb func(keyType int, key string, operate int)
 		return
 	}
 
-	for {
-		pack, ok := c.observer.PopDataOprPack()
-		if !ok {
-			break
-		}
-
-		cb(pack.KeyType, pack.Key, pack.Operate)
-	}
+	go c.dataOprPushLoop(cb)
 }
 
 func (c *Client) ListenConnChangePush(cb func(srvType uint32, srvNo uint32, connChangeType int)) {
@@ -65,14 +58,7 @@ func (c *Client) ListenConnChangePush(cb func(srvType uint32, srvNo uint32, conn
 		return
 	}
 
-	for {
-		pack, ok := c.observer.PopConnChangePack()
-		if !ok {
-			break
-		}
-
-		cb(pack.SrvType, pack.SrvNo, pack.ConnChangeType)
-	}
+	go c.connChangePushLoop(cb)
 }
 
 func (c *Client) FetchFuncList() error {
@@ -315,4 +301,26 @@ func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
 	}
 
 	return nil
+}
+
+func (c *Client) dataOprPushLoop(cb func(keyType int, key string, operate int)) {
+	for {
+		pack, ok := c.observer.PopDataOprPack()
+		if !ok {
+			break
+		}
+
+		cb(pack.KeyType, pack.Key, pack.Operate)
+	}
+}
+
+func (c *Client) connChangePushLoop(cb func(srvType uint32, srvNo uint32, connChangeType int)) {
+	for {
+		pack, ok := c.observer.PopConnChangePack()
+		if !ok {
+			break
+		}
+
+		cb(pack.SrvType, pack.SrvNo, pack.ConnChangeType)
+	}
 }
