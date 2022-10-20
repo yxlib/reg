@@ -33,7 +33,7 @@ func NewClient(rpcNet rpc.Net, observerNet rpc.Net, srvPeerType uint32, srvPeerN
 }
 
 func (c *Client) Start() {
-	c.rpcPeer.SetInterceptor(&rpc.JsonPipelineInterceptor{})
+	c.rpcPeer.SetInterceptor(&rpc.JsonInterceptor{})
 	c.rpcPeer.SetTimeout(TIME_OUT_SEC)
 
 	go c.observer.Start()
@@ -73,8 +73,8 @@ func (c *Client) UpdateSrv(srvType uint32, srvNo uint32, bTemp bool, data []byte
 	req.IsTemp = bTemp
 	req.DataBase64 = base64.StdEncoding.EncodeToString(data)
 
-	resp := &BaseResp{}
-	err := c.rpcCall("UpdateSrv", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("UpdateSrv", req, nil)
 	return c.ec.Throw("UpdateSrv", err)
 }
 
@@ -84,8 +84,8 @@ func (c *Client) RemoveSrv(srvType uint32, srvNo uint32) error {
 		SrvNo:   srvNo,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("RemoveSrv", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("RemoveSrv", req, nil)
 	return c.ec.Throw("RemoveSrv", err)
 }
 
@@ -138,8 +138,8 @@ func (c *Client) WatchSrv(srvType uint32, srvNo uint32) error {
 		SrvNo:   srvNo,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("WatchSrv", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("WatchSrv", req, nil)
 	return c.ec.Throw("WatchSrv", err)
 }
 
@@ -149,8 +149,8 @@ func (c *Client) StopWatchSrv(srvType uint32, srvNo uint32) error {
 		SrvNo:   srvNo,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("StopWatchSrv", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("StopWatchSrv", req, nil)
 	return c.ec.Throw("StopWatchSrv", err)
 }
 
@@ -159,8 +159,8 @@ func (c *Client) WatchSrvsByType(srvType uint32) error {
 		SrvType: srvType,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("WatchSrvsByType", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("WatchSrvsByType", req, nil)
 	return c.ec.Throw("WatchSrvsByType", err)
 }
 
@@ -169,8 +169,8 @@ func (c *Client) StopWatchSrvsByType(srvType uint32) error {
 		SrvType: srvType,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("StopWatchSrvsByType", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("StopWatchSrvsByType", req, nil)
 	return c.ec.Throw("StopWatchSrvsByType", err)
 }
 
@@ -180,8 +180,8 @@ func (c *Client) UpdateGlobalData(key string, data []byte) error {
 		DataBase64: base64.StdEncoding.EncodeToString(data),
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("UpdateGlobalData", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("UpdateGlobalData", req, nil)
 	return c.ec.Throw("UpdateGlobalData", err)
 }
 
@@ -190,8 +190,8 @@ func (c *Client) RemoveGlobalData(key string) error {
 		Key: key,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("RemoveGlobalData", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("RemoveGlobalData", req, nil)
 	return c.ec.Throw("RemoveGlobalData", err)
 }
 
@@ -219,8 +219,8 @@ func (c *Client) WatchGlobalData(key string) error {
 		Key: key,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("WatchGlobalData", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("WatchGlobalData", req, nil)
 	return c.ec.Throw("WatchGlobalData", err)
 }
 
@@ -229,22 +229,22 @@ func (c *Client) StopWatchGlobalData(key string) error {
 		Key: key,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("StopWatchGlobalData", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("StopWatchGlobalData", req, nil)
 	return c.ec.Throw("StopWatchGlobalData", err)
 }
 
 func (c *Client) WatchConn() error {
 	req := &WatchConnReq{}
-	resp := &BaseResp{}
-	err := c.rpcCall("WatchConn", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("WatchConn", req, nil)
 	return c.ec.Throw("WatchConn", err)
 }
 
 func (c *Client) StopWatchConn() error {
 	req := &StopWatchConnReq{}
-	resp := &BaseResp{}
-	err := c.rpcCall("StopWatchConn", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("StopWatchConn", req, nil)
 	return c.ec.Throw("StopWatchConn", err)
 }
 
@@ -254,8 +254,8 @@ func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {
 		SrvNo:   srvNo,
 	}
 
-	resp := &BaseResp{}
-	err := c.rpcCall("StopAllWatch", req, resp)
+	// resp := &BaseResp{}
+	err := c.rpcCall("StopAllWatch", req, nil)
 	return c.ec.Throw("StopAllWatch", err)
 }
 
@@ -270,7 +270,7 @@ func (c *Client) StopAllWatch(srvType uint32, srvNo uint32) error {
 // 	return resp, nil
 // }
 
-func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
+func (c *Client) rpcCall(funcName string, req interface{}, resp interface{}) error {
 	var err error = nil
 	defer c.ec.DeferThrow("rpcCall", &err)
 
@@ -282,11 +282,15 @@ func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
 
 	// params := make([]rpc.ByteArray, 0)
 	// params = append(params, reqData)
-	err = c.rpcPeer.Call(funcName, req, resp)
+	code, err := c.rpcPeer.Call(funcName, req, resp)
 	if err != nil {
-		c.logger.E("rpcCall rpcPeer.Call err: ", err)
-		return err
+		c.logger.E("rpcCall rpcPeer.Call err, code = ", code, ", ", err)
 	}
+	return err
+	// if err != nil {
+	// 	c.logger.E("rpcCall rpcPeer.Call err: ", err)
+	// 	return err
+	// }
 
 	// err = json.Unmarshal(respData, resp)
 	// if err != nil {
@@ -294,13 +298,13 @@ func (c *Client) rpcCall(funcName string, req interface{}, resp RegResp) error {
 	// 	return err
 	// }
 
-	if resp.GetResCode() != RES_CODE_SUCC {
-		c.logger.W("rpcCall failed, ", resp.GetResCode(), ", ", resp.GetResMsg())
-		err = ErrRegCallFailed
-		return err
-	}
+	// if resp.GetResCode() != RES_CODE_SUCC {
+	// 	c.logger.W("rpcCall failed, ", resp.GetResCode(), ", ", resp.GetResMsg())
+	// 	err = ErrRegCallFailed
+	// 	return err
+	// }
 
-	return nil
+	// return nil
 }
 
 func (c *Client) dataOprPushLoop(cb func(keyType int, key string, operate int)) {

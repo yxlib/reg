@@ -6,11 +6,18 @@ package reg
 
 import (
 	"encoding/json"
+	"errors"
 	"strings"
 	"sync"
 
 	"github.com/yxlib/rpc"
 	"github.com/yxlib/yx"
+)
+
+var (
+	ErrSrvServNotExist       = errors.New("server not exists")
+	ErrSrvServTypeNotExist   = errors.New("server type not exists")
+	ErrSrvGlobalDataNotExist = errors.New("global data not exists")
 )
 
 const (
@@ -72,7 +79,7 @@ func NewServer(net rpc.Net, savePath string) *Server {
 	}
 
 	s.SetName(REG_SRV)
-	s.SetInterceptor(&rpc.JsonServInterceptor{})
+	s.SetInterceptor(&rpc.JsonInterceptor{})
 	return s
 }
 
@@ -167,185 +174,197 @@ func (s *Server) Stop() {
 	close(s.chanConnChange)
 }
 
-func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnUpdateSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*UpdateSrvReq)
 	s.UpdateSrv(reqData.SrvType, reqData.SrvNo, reqData.IsTemp, reqData.DataBase64)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnRemoveSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnRemoveSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*RemoveSrvReq)
 	s.RemoveSrv(reqData.SrvType, reqData.SrvNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnGetSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnGetSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*GetSrvReq)
 	respData := resp.(*GetSrvResp)
 
 	srvInfo, ok := s.info.GetSrvInfo(reqData.SrvType, reqData.SrvNo)
-	if ok {
-		respData.SetResult(RES_CODE_SUCC, "")
-	} else {
-		respData.SetResult(RES_CODE_SRV_NOT_EXISTS, "server not exists")
+	if !ok {
+		return RES_CODE_SRV_NOT_EXISTS, s.ec.Throw("OnGetSrv", ErrSrvServNotExist)
 	}
+	// if ok {
+	// 	respData.SetResult(RES_CODE_SUCC, "")
+	// } else {
+	// 	respData.SetResult(RES_CODE_SRV_NOT_EXISTS, "server not exists")
+	// }
 
 	respData.Data = srvInfo
-	return nil
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnGetSrvByKey(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnGetSrvByKey(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*GetSrvByKeyReq)
 	respData := resp.(*GetSrvByKeyResp)
 
 	srvInfo, ok := s.info.GetSrvInfoByKey(reqData.Key)
-	if ok {
-		respData.SetResult(RES_CODE_SUCC, "")
-	} else {
-		respData.SetResult(RES_CODE_SRV_NOT_EXISTS, "server not exists")
+	if !ok {
+		return RES_CODE_SRV_NOT_EXISTS, s.ec.Throw("OnGetSrvByKey", ErrSrvServNotExist)
 	}
+	// if ok {
+	// 	respData.SetResult(RES_CODE_SUCC, "")
+	// } else {
+	// 	respData.SetResult(RES_CODE_SRV_NOT_EXISTS, "server not exists")
+	// }
 
 	respData.Data = srvInfo
-	return nil
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnGetSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnGetSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*GetSrvsByTypeReq)
 	respData := resp.(*GetSrvsByTypeResp)
 
 	infos, ok := s.info.GetAllSrvInfos(reqData.SrvType)
-	if ok {
-		respData.SetResult(RES_CODE_SUCC, "")
-	} else {
-		respData.SetResult(RES_CODE_SRV_TYPE_NOT_EXISTS, "server type not exists")
+	if !ok {
+		return RES_CODE_SRV_TYPE_NOT_EXISTS, s.ec.Throw("OnGetSrvsByType", ErrSrvServTypeNotExist)
 	}
+	// if ok {
+	// 	respData.SetResult(RES_CODE_SUCC, "")
+	// } else {
+	// 	respData.SetResult(RES_CODE_SRV_TYPE_NOT_EXISTS, "server type not exists")
+	// }
 
 	respData.Data = infos
-	return nil
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*WatchSrvReq)
 	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
 	s.addInfoObserver(key, srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnStopWatchSrv(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*StopWatchSrvReq)
 	key := GetSrvKey(reqData.SrvType, reqData.SrvNo)
 	s.removeInfoObserver(key, srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*WatchSrvsByTypeReq)
 	key := GetSrvTypeKey(reqData.SrvType)
 	s.addInfoObserver(key, srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnStopWatchSrvsByType(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*StopWatchSrvsByTypeReq)
 	key := GetSrvTypeKey(reqData.SrvType)
 	s.removeInfoObserver(key, srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnUpdateGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnUpdateGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*UpdateGlobalDataReq)
 	s.UpdateGlobalData(reqData.Key, reqData.DataBase64)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnRemoveGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnRemoveGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*RemoveGlobalDataReq)
 	s.RemoveGlobalData(reqData.Key)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnGetGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnGetGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*GetGlobalDataReq)
 	respData := resp.(*GetGlobalDataResp)
 
 	dataBase64, ok := s.info.GetGlobalData(reqData.Key)
-	if ok {
-		respData.SetResult(RES_CODE_SUCC, "")
-	} else {
-		respData.SetResult(RES_CODE_GLOBAL_DATA_NOT_EXISTS, "global data not exists")
+	if !ok {
+		return RES_CODE_GLOBAL_DATA_NOT_EXISTS, s.ec.Throw("OnGetGlobalData", ErrSrvGlobalDataNotExist)
 	}
+	// if ok {
+	// 	respData.SetResult(RES_CODE_SUCC, "")
+	// } else {
+	// 	respData.SetResult(RES_CODE_GLOBAL_DATA_NOT_EXISTS, "global data not exists")
+	// }
 
 	respData.DataBase64 = dataBase64
-	return nil
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*WatchGlobalDataReq)
 	s.addInfoObserver(reqData.Key, srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnStopWatchGlobalData(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*StopWatchGlobalDataReq)
 	s.removeInfoObserver(reqData.Key, srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnWatchConn(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnWatchConn(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	// reqData := req.(*WatchConnReq)
 	s.addConnObserver(srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnStopWatchConn(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnStopWatchConn(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	// reqData := req.(*StopWatchConnReq)
 	s.removeConnObserver(srcPeerType, srcPeerNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
-func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) error {
+func (s *Server) OnStopAllWatch(req interface{}, resp interface{}, srcPeerType uint32, srcPeerNo uint32) (uint16, error) {
 	reqData := req.(*StopAllWatchReq)
 	s.RemoveAllObserverOfSrv(reqData.SrvType, reqData.SrvNo)
 
-	respData := resp.(*BaseResp)
-	respData.SetResult(RES_CODE_SUCC, "")
-	return nil
+	// respData := resp.(*BaseResp)
+	// respData.SetResult(RES_CODE_SUCC, "")
+	return rpc.RES_CODE_SUCC, nil
 }
 
 func (s *Server) addInfoObserver(key string, srvType uint32, srvNo uint32) {

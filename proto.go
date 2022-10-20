@@ -13,36 +13,36 @@ const (
 )
 
 const (
-	RES_CODE_SUCC                   = 0
+	// RES_CODE_SUCC                   = 0
 	RES_CODE_SRV_NOT_EXISTS         = 100
 	RES_CODE_SRV_TYPE_NOT_EXISTS    = 101
 	RES_CODE_GLOBAL_DATA_NOT_EXISTS = 102
 )
 
 // RegResp
-type RegResp interface {
-	SetResult(code int, msg string)
-	GetResCode() int
-	GetResMsg() string
-}
+// type RegResp interface {
+// 	SetResult(code int, msg string)
+// 	GetResCode() int
+// 	GetResMsg() string
+// }
 
-type BaseResp struct {
-	ResCode int    `json:"resCode"`
-	Msg     string `json:"msg"`
-}
+// type BaseResp struct {
+// 	ResCode int    `json:"resCode"`
+// 	Msg     string `json:"msg"`
+// }
 
-func (r *BaseResp) SetResult(code int, msg string) {
-	r.ResCode = code
-	r.Msg = msg
-}
+// func (r *BaseResp) SetResult(code int, msg string) {
+// 	r.ResCode = code
+// 	r.Msg = msg
+// }
 
-func (r *BaseResp) GetResCode() int {
-	return r.ResCode
-}
+// func (r *BaseResp) GetResCode() int {
+// 	return r.ResCode
+// }
 
-func (r *BaseResp) GetResMsg() string {
-	return r.Msg
-}
+// func (r *BaseResp) GetResMsg() string {
+// 	return r.Msg
+// }
 
 // UpdateSrv
 type UpdateSrvReq struct {
@@ -70,7 +70,7 @@ type GetSrvReq struct {
 }
 
 type GetSrvResp struct {
-	BaseResp
+	// BaseResp
 	Data *SrvInfo `json:"data"`
 }
 
@@ -80,7 +80,7 @@ type GetSrvByKeyReq struct {
 }
 
 type GetSrvByKeyResp struct {
-	BaseResp
+	// BaseResp
 	Data *SrvInfo `json:"data"`
 }
 
@@ -90,7 +90,7 @@ type GetSrvsByTypeReq struct {
 }
 
 type GetSrvsByTypeResp struct {
-	BaseResp
+	// BaseResp
 	Data []*SrvInfo `json:"data"`
 }
 
@@ -157,7 +157,7 @@ type GetGlobalDataReq struct {
 }
 
 type GetGlobalDataResp struct {
-	BaseResp
+	// BaseResp
 	DataBase64 string `json:"data"`
 }
 
