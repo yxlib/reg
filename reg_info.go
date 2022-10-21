@@ -52,7 +52,7 @@ func NewRegInfo() *RegInfo {
 		lckSrv:          &sync.RWMutex{},
 		treeGlobalInfos: NewMapTree(),
 		lckGlobal:       &sync.RWMutex{},
-		logger:          yx.NewLogger("NewRegInfo"),
+		logger:          yx.NewLogger("RegInfo"),
 	}
 }
 
