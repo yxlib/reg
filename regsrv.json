@@ -28,6 +28,12 @@
                     "req" : "github.com/yxlib/reg.GetSrvReq",
                     "resp" : "github.com/yxlib/reg.GetSrvResp"
                 },
+                "GetSrvByKey" :
+                {
+                    "handler" : "OnGetSrvByKey",
+                    "req" : "github.com/yxlib/reg.GetSrvByKeyReq",
+                    "resp" : "github.com/yxlib/reg.GetSrvByKeyResp"
+                },
                 "GetSrvsByType" :
                 {
                     "handler" : "OnGetSrvsByType",
