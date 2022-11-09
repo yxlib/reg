@@ -2,6 +2,9 @@
     "use_worker_mode" : true,
     "max_req_num" : 10,
     "max_task_num" : 10,
+    "auto_mod_cmd" : false,
+    "enumerable" : true,
+    "enum_protoNo" : 1,
     "services" :
     [
         {
@@ -11,126 +14,120 @@
             "processors" :
             [
                 {
-                    "name" : "FetchFuncList",
-                    "cmd" : 1,
-                    "handler" : "OnFetchFuncList",
-                    "resp" : "github.com/yxlib/rpc.FetchFuncListResp"
-                },
-                {
                     "name" : "UpdateSrv",
-                    "cmd" : 2,
+                    "cmd" : 1,
                     "handler" : "OnUpdateSrv",
                     "req" : "github.com/yxlib/reg.UpdateSrvReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "RemoveSrv",
-                    "cmd" : 3,
+                    "cmd" : 2,
                     "handler" : "OnRemoveSrv",
                     "req" : "github.com/yxlib/reg.RemoveSrvReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "GetSrv",
-                    "cmd" : 4,
+                    "cmd" : 3,
                     "handler" : "OnGetSrv",
                     "req" : "github.com/yxlib/reg.GetSrvReq",
                     "resp" : "github.com/yxlib/reg.GetSrvResp"
                 },
                 {
                     "name" : "GetSrvByKey",
-                    "cmd" : 5,
+                    "cmd" : 4,
                     "handler" : "OnGetSrvByKey",
                     "req" : "github.com/yxlib/reg.GetSrvByKeyReq",
                     "resp" : "github.com/yxlib/reg.GetSrvByKeyResp"
                 },
                 {
                     "name" : "GetSrvsByType",
-                    "cmd" : 6,
+                    "cmd" : 5,
                     "handler" : "OnGetSrvsByType",
                     "req" : "github.com/yxlib/reg.GetSrvsByTypeReq",
                     "resp" : "github.com/yxlib/reg.GetSrvsByTypeResp"
                 },
                 {
                     "name" : "WatchSrv",
-                    "cmd" : 7,
+                    "cmd" : 6,
                     "handler" : "OnWatchSrv",
                     "req" : "github.com/yxlib/reg.WatchSrvReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "StopWatchSrv",
-                    "cmd" : 8,
+                    "cmd" : 7,
                     "handler" : "OnStopWatchSrv",
                     "req" : "github.com/yxlib/reg.StopWatchSrvReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "WatchSrvsByType",
-                    "cmd" : 9,
+                    "cmd" : 8,
                     "handler" : "OnWatchSrvsByType",
                     "req" : "github.com/yxlib/reg.WatchSrvsByTypeReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "StopWatchSrvsByType",
-                    "cmd" : 10,
+                    "cmd" : 9,
                     "handler" : "OnStopWatchSrvsByType",
                     "req" : "github.com/yxlib/reg.StopWatchSrvsByTypeReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "UpdateGlobalData",
-                    "cmd" : 11,
+                    "cmd" : 10,
                     "handler" : "OnUpdateGlobalData",
                     "req" : "github.com/yxlib/reg.UpdateGlobalDataReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "RemoveGlobalData",
-                    "cmd" : 12,
+                    "cmd" : 11,
                     "handler" : "OnRemoveGlobalData",
                     "req" : "github.com/yxlib/reg.RemoveGlobalDataReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "GetGlobalData",
-                    "cmd" : 13,
+                    "cmd" : 12,
                     "handler" : "OnGetGlobalData",
                     "req" : "github.com/yxlib/reg.GetGlobalDataReq",
                     "resp" : "github.com/yxlib/reg.GetGlobalDataResp"
                 },
                 {
                     "name" : "WatchGlobalData",
-                    "cmd" : 14,
+                    "cmd" : 13,
                     "handler" : "OnWatchGlobalData",
                     "req" : "github.com/yxlib/reg.WatchGlobalDataReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "StopWatchGlobalData",
-                    "cmd" : 15,
+                    "cmd" : 14,
                     "handler" : "OnStopWatchGlobalData",
                     "req" : "github.com/yxlib/reg.StopWatchGlobalDataReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "WatchConn",
-                    "cmd" : 16,
+                    "cmd" : 15,
                     "handler" : "OnWatchConn",
                     "req" : "github.com/yxlib/reg.WatchConnReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "StopWatchConn",
-                    "cmd" : 17,
+                    "cmd" : 16,
                     "handler" : "OnStopWatchConn",
                     "req" : "github.com/yxlib/reg.StopWatchConnReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
                 },
                 {
                     "name" : "StopAllWatch",
-                    "cmd" : 18,
+                    "cmd" : 17,
                     "handler" : "OnStopAllWatch",
                     "req" : "github.com/yxlib/reg.StopAllWatchReq",
                     "resp" : "github.com/yxlib/reg.BaseResp"
