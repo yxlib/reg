@@ -5,6 +5,7 @@
 package reg
 
 const (
+	REG_SERVIC_NAME       = "reg"
 	REG_SRV               = "REG_SRV"
 	TIME_OUT_SEC          = 3
 	PUSH_MARK             = "REG_PUSH"

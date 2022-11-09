@@ -7,7 +7,6 @@ package reg
 import (
 	"errors"
 
-	"github.com/yxlib/rpc"
 	"github.com/yxlib/server"
 	"github.com/yxlib/yx"
 )
@@ -53,7 +52,7 @@ func (s *Service) OnUpdateSrv(req *server.Request, resp *server.Response) (int32
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnRemoveSrv(req *server.Request, resp *server.Response) (int32, error) {
@@ -62,7 +61,7 @@ func (s *Service) OnRemoveSrv(req *server.Request, resp *server.Response) (int32
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnGetSrv(req *server.Request, resp *server.Response) (int32, error) {
@@ -81,7 +80,7 @@ func (s *Service) OnGetSrv(req *server.Request, resp *server.Response) (int32, e
 	// }
 
 	respData.Data = srvInfo
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnGetSrvByKey(req *server.Request, resp *server.Response) (int32, error) {
@@ -100,7 +99,7 @@ func (s *Service) OnGetSrvByKey(req *server.Request, resp *server.Response) (int
 	// }
 
 	respData.Data = srvInfo
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnGetSrvsByType(req *server.Request, resp *server.Response) (int32, error) {
@@ -119,7 +118,7 @@ func (s *Service) OnGetSrvsByType(req *server.Request, resp *server.Response) (i
 	// }
 
 	respData.Data = infos
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnWatchSrv(req *server.Request, resp *server.Response) (int32, error) {
@@ -129,7 +128,7 @@ func (s *Service) OnWatchSrv(req *server.Request, resp *server.Response) (int32,
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnStopWatchSrv(req *server.Request, resp *server.Response) (int32, error) {
@@ -139,7 +138,7 @@ func (s *Service) OnStopWatchSrv(req *server.Request, resp *server.Response) (in
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnWatchSrvsByType(req *server.Request, resp *server.Response) (int32, error) {
@@ -149,7 +148,7 @@ func (s *Service) OnWatchSrvsByType(req *server.Request, resp *server.Response) 
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnStopWatchSrvsByType(req *server.Request, resp *server.Response) (int32, error) {
@@ -159,7 +158,7 @@ func (s *Service) OnStopWatchSrvsByType(req *server.Request, resp *server.Respon
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnUpdateGlobalData(req *server.Request, resp *server.Response) (int32, error) {
@@ -168,7 +167,7 @@ func (s *Service) OnUpdateGlobalData(req *server.Request, resp *server.Response)
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnRemoveGlobalData(req *server.Request, resp *server.Response) (int32, error) {
@@ -177,7 +176,7 @@ func (s *Service) OnRemoveGlobalData(req *server.Request, resp *server.Response)
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnGetGlobalData(req *server.Request, resp *server.Response) (int32, error) {
@@ -196,7 +195,7 @@ func (s *Service) OnGetGlobalData(req *server.Request, resp *server.Response) (i
 	// }
 
 	respData.DataBase64 = dataBase64
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnWatchGlobalData(req *server.Request, resp *server.Response) (int32, error) {
@@ -205,7 +204,7 @@ func (s *Service) OnWatchGlobalData(req *server.Request, resp *server.Response) 
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnStopWatchGlobalData(req *server.Request, resp *server.Response) (int32, error) {
@@ -214,7 +213,7 @@ func (s *Service) OnStopWatchGlobalData(req *server.Request, resp *server.Respon
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnWatchConn(req *server.Request, resp *server.Response) (int32, error) {
@@ -223,7 +222,7 @@ func (s *Service) OnWatchConn(req *server.Request, resp *server.Response) (int32
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnStopWatchConn(req *server.Request, resp *server.Response) (int32, error) {
@@ -232,7 +231,7 @@ func (s *Service) OnStopWatchConn(req *server.Request, resp *server.Response) (i
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }
 
 func (s *Service) OnStopAllWatch(req *server.Request, resp *server.Response) (int32, error) {
@@ -241,5 +240,5 @@ func (s *Service) OnStopAllWatch(req *server.Request, resp *server.Response) (in
 
 	// respData := resp.(*BaseResp)
 	// respData.SetResult(RES_CODE_SUCC, "")
-	return rpc.RES_CODE_SUCC, nil
+	return server.RESP_CODE_SUCCESS, nil
 }

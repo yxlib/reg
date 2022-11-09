@@ -26,7 +26,7 @@ func NewObserver(net rpc.Net, peerType uint32, peerNo uint32) *Observer {
 		logger:             yx.NewLogger("reg.Observer"),
 	}
 
-	o.net.SetService(PUSH_MARK, false, peerType, peerNo)
+	o.net.SetMark(PUSH_MARK, peerType, peerNo)
 	return o
 }
 

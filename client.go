@@ -61,8 +61,8 @@ func (c *Client) ListenConnChangePush(cb func(srvType uint32, srvNo uint32, conn
 	go c.connChangePushLoop(cb)
 }
 
-func (c *Client) FetchFuncList() error {
-	err := c.rpcPeer.FetchFuncList()
+func (c *Client) FetchFuncList(funcNo uint16) error {
+	err := c.rpcPeer.FetchFuncList(funcNo)
 	return c.ec.Throw("FetchFuncList", err)
 }
 
@@ -282,7 +282,7 @@ func (c *Client) rpcCall(funcName string, req interface{}, resp interface{}) err
 
 	// params := make([]rpc.ByteArray, 0)
 	// params = append(params, reqData)
-	code, err := c.rpcPeer.Call(funcName, req, resp)
+	code, err := c.rpcPeer.Call(REG_SERVIC_NAME, funcName, req, resp)
 	if err != nil {
 		c.logger.E("rpcCall rpcPeer.Call err, code = ", code, ", ", err)
 	}
