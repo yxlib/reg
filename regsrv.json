@@ -9,7 +9,7 @@
     [
         {
             "name" : "reg",
-            "service" : "github.com/yxlib/reg.Server",
+            "service" : "github.com/yxlib/reg.Service",
             "mod" : 1,
             "processors" :
             [
